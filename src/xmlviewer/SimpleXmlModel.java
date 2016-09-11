@@ -23,6 +23,10 @@ class SimpleXmlModel {
         treeModel = Utils.getTreeModel(file);
     }
 
+    public void reload() {
+        treeModel = Utils.getTreeModel(file);
+    }
+
     public void save() {
         Utils.saveFromTreeModel(treeModel, file);
     }

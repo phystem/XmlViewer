@@ -10,15 +10,23 @@ import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
 import javax.swing.AbstractAction;
+import javax.swing.Action;
 import javax.swing.DefaultListModel;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
 import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
 import javax.swing.TransferHandler;
 import javax.swing.event.CellEditorListener;
 import javax.swing.event.ChangeEvent;
@@ -34,12 +42,16 @@ import static xmlviewer.Utils.XML_FILE_FILTER;
 public class XmlUI extends javax.swing.JFrame {
 
     DefaultListModel xmlListModel;
+    TreePopupMenu popupMenu;
+
+    Action onValueChangeOnAction;
 
     /**
      * Creates new form XmlUI
      */
     public XmlUI() {
         initComponents();
+        popupMenu = new TreePopupMenu();
         xmlListModel = new DefaultListModel();
         xmlList.setModel(xmlListModel);
         xmlFileChooser.setMultiSelectionEnabled(true);
@@ -62,6 +74,17 @@ public class XmlUI extends javax.swing.JFrame {
             @Override
             public void editingCanceled(ChangeEvent e) {
 
+            }
+        });
+
+        xmlTree.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    int row = xmlTree.getClosestRowForLocation(e.getX(), e.getY());
+                    xmlTree.setSelectionRow(row);
+                    popupMenu.show(e.getComponent(), e.getX(), e.getY());
+                }
             }
         });
 
@@ -135,7 +158,7 @@ public class XmlUI extends javax.swing.JFrame {
                 } catch (Exception e) {
                     return false;
                 }
-                checkAndAddFiles((File[])data.toArray());
+                checkAndAddFiles((File[]) data.toArray());
                 return true;
             }
 
@@ -143,6 +166,16 @@ public class XmlUI extends javax.swing.JFrame {
                 System.out.println(string);
             }
         });
+
+        onValueChangeOnAction = new AbstractAction() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (applyChangesMenuItem.isSelected()) {
+                    modifyValueInOthers();
+                }
+            }
+        };
 
     }
 
@@ -173,6 +206,22 @@ public class XmlUI extends javax.swing.JFrame {
         addNode = new javax.swing.JButton();
         renameNode = new javax.swing.JButton();
         deleteNode = new javax.swing.JButton();
+        jMenuBar1 = new javax.swing.JMenuBar();
+        jMenu1 = new javax.swing.JMenu();
+        loadMenuItem = new javax.swing.JMenuItem();
+        saveMenuItem = new javax.swing.JMenuItem();
+        reloadMenuItem = new javax.swing.JMenuItem();
+        jSeparator2 = new javax.swing.JPopupMenu.Separator();
+        quitMenuItem = new javax.swing.JMenuItem();
+        jMenu2 = new javax.swing.JMenu();
+        addNodeMenuItem = new javax.swing.JMenuItem();
+        renameNodeMenuItem = new javax.swing.JMenuItem();
+        deleteNodesMenuItem = new javax.swing.JMenuItem();
+        jSeparator1 = new javax.swing.JPopupMenu.Separator();
+        applyChangesMenuItem = new javax.swing.JCheckBoxMenuItem();
+        jSeparator3 = new javax.swing.JPopupMenu.Separator();
+        expandNodes = new javax.swing.JMenuItem();
+        collapseNodes = new javax.swing.JMenuItem();
 
         xmlFileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
         xmlFileChooser.setDialogTitle("Select any XML files or folder which contains XML");
@@ -310,6 +359,95 @@ public class XmlUI extends javax.swing.JFrame {
 
         getContentPane().add(toolBar, java.awt.BorderLayout.NORTH);
 
+        jMenu1.setText("File");
+
+        loadMenuItem.setText("Load");
+        loadMenuItem.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                loadMenuItemActionPerformed(evt);
+            }
+        });
+        jMenu1.add(loadMenuItem);
+
+        saveMenuItem.setText("Save");
+        saveMenuItem.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                saveMenuItemActionPerformed(evt);
+            }
+        });
+        jMenu1.add(saveMenuItem);
+
+        reloadMenuItem.setText("Reload");
+        reloadMenuItem.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                reloadMenuItemActionPerformed(evt);
+            }
+        });
+        jMenu1.add(reloadMenuItem);
+        jMenu1.add(jSeparator2);
+
+        quitMenuItem.setText("Quit");
+        quitMenuItem.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                quitMenuItemActionPerformed(evt);
+            }
+        });
+        jMenu1.add(quitMenuItem);
+
+        jMenuBar1.add(jMenu1);
+
+        jMenu2.setText("Options");
+
+        addNodeMenuItem.setText("Add Node");
+        addNodeMenuItem.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                addNodeMenuItemActionPerformed(evt);
+            }
+        });
+        jMenu2.add(addNodeMenuItem);
+
+        renameNodeMenuItem.setText("Rename Node");
+        renameNodeMenuItem.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                renameNodeMenuItemActionPerformed(evt);
+            }
+        });
+        jMenu2.add(renameNodeMenuItem);
+
+        deleteNodesMenuItem.setText("Delete Nodes");
+        deleteNodesMenuItem.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                deleteNodesMenuItemActionPerformed(evt);
+            }
+        });
+        jMenu2.add(deleteNodesMenuItem);
+        jMenu2.add(jSeparator1);
+
+        applyChangesMenuItem.setText("Apply NLC to All");
+        applyChangesMenuItem.setToolTipText("Apply Node Level Changes like Node Text change,Attribute value changes to other loaded xmls");
+        jMenu2.add(applyChangesMenuItem);
+        jMenu2.add(jSeparator3);
+
+        expandNodes.setText("Expand All");
+        expandNodes.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                expandNodesActionPerformed(evt);
+            }
+        });
+        jMenu2.add(expandNodes);
+
+        collapseNodes.setText("Collapse All");
+        collapseNodes.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                collapseNodesActionPerformed(evt);
+            }
+        });
+        jMenu2.add(collapseNodes);
+
+        jMenuBar1.add(jMenu2);
+
+        setJMenuBar(jMenuBar1);
+
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
@@ -326,14 +464,25 @@ public class XmlUI extends javax.swing.JFrame {
             if (xmlList.getSelectedIndex() != -1) {
                 SimpleXmlModel model = (SimpleXmlModel) xmlListModel.get(xmlList.getSelectedIndex());
                 xmlTree.setModel(model.treeModel);
+                XmlTreeNode root = (XmlTreeNode) model.treeModel.getRoot();
+                xmlTree.setSelectionPath(new TreePath(root.getFirstLeaf().getPath()));
             }
         }
     }//GEN-LAST:event_xmlListValueChanged
 
     private void xmlTreeValueChanged(javax.swing.event.TreeSelectionEvent evt) {//GEN-FIRST:event_xmlTreeValueChanged
+        Object previous = evt.getOldLeadSelectionPath();
+        if (previous != null) {
+            if (previous instanceof XmlTreeNode) {
+                XmlTreeNode previousNode = (XmlTreeNode) previous;
+                previousNode.setOnValueChangeAction(null);
+            }
+        }
         Object selected = evt.getPath().getLastPathComponent();
         if (selected instanceof XmlTreeNode) {
-            xmlPropTable.setModel((XmlTreeNode) selected);
+            XmlTreeNode selectedNode = (XmlTreeNode) selected;
+            xmlPropTable.setModel(selectedNode);
+            selectedNode.setOnValueChangeAction(onValueChangeOnAction);
         }
     }//GEN-LAST:event_xmlTreeValueChanged
 
@@ -373,6 +522,47 @@ public class XmlUI extends javax.swing.JFrame {
         }
         System.out.println("Saved successfully");
     }//GEN-LAST:event_saveXmlActionPerformed
+
+    private void loadMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_loadMenuItemActionPerformed
+        loadXmlActionPerformed(evt);
+    }//GEN-LAST:event_loadMenuItemActionPerformed
+
+    private void saveMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveMenuItemActionPerformed
+        saveXmlActionPerformed(evt);
+    }//GEN-LAST:event_saveMenuItemActionPerformed
+
+    private void reloadMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_reloadMenuItemActionPerformed
+        xmlTree.stopEditing();
+        for (int i = 0; i < xmlListModel.size(); i++) {
+            SimpleXmlModel sModel = (SimpleXmlModel) xmlListModel.get(i);
+            sModel.reload();
+        }
+        xmlList.setSelectedIndex(xmlListModel.getSize() - 1);
+    }//GEN-LAST:event_reloadMenuItemActionPerformed
+
+    private void quitMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_quitMenuItemActionPerformed
+        this.dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
+    }//GEN-LAST:event_quitMenuItemActionPerformed
+
+    private void addNodeMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_addNodeMenuItemActionPerformed
+        addNodeActionPerformed(evt);
+    }//GEN-LAST:event_addNodeMenuItemActionPerformed
+
+    private void renameNodeMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_renameNodeMenuItemActionPerformed
+        renameNodeActionPerformed(evt);
+    }//GEN-LAST:event_renameNodeMenuItemActionPerformed
+
+    private void deleteNodesMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_deleteNodesMenuItemActionPerformed
+        deleteNodeActionPerformed(evt);
+    }//GEN-LAST:event_deleteNodesMenuItemActionPerformed
+
+    private void expandNodesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_expandNodesActionPerformed
+        Utils.expandTree(xmlTree, true);
+    }//GEN-LAST:event_expandNodesActionPerformed
+
+    private void collapseNodesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_collapseNodesActionPerformed
+        Utils.expandTree(xmlTree, false);
+    }//GEN-LAST:event_collapseNodesActionPerformed
 
     private void checkAndAddFiles(File[] files) {
         for (File file : files) {
@@ -469,6 +659,24 @@ public class XmlUI extends javax.swing.JFrame {
         }
     }
 
+    private void modifyValueInOthers() {
+        XmlTreeNode node = getSelectedNode();
+        modifyValueInOthers(node.getXpath());
+    }
+
+    private void modifyValueInOthers(String xpath) {
+        int index = xmlList.getSelectedIndex();
+        for (int i = 0; i < xmlListModel.size(); i++) {
+            if (i != index) {
+                DefaultTreeModel model = ((SimpleXmlModel) xmlListModel.get(i)).treeModel;
+                XmlTreeNode node = getMatchingNodeByXpath(model, xpath);
+                if (node != null) {
+                    node.modifyValueByAction(onValueChangeOnAction);
+                }
+            }
+        }
+    }
+
     private XmlTreeNode getSelectedNode() {
         XmlTreeNode[] nodes = getSelectedNodes();
         if (nodes != null) {
@@ -543,12 +751,28 @@ public class XmlUI extends javax.swing.JFrame {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton addNode;
+    private javax.swing.JMenuItem addNodeMenuItem;
+    private javax.swing.JCheckBoxMenuItem applyChangesMenuItem;
+    private javax.swing.JMenuItem collapseNodes;
     private javax.swing.JButton deleteNode;
+    private javax.swing.JMenuItem deleteNodesMenuItem;
+    private javax.swing.JMenuItem expandNodes;
     private javax.swing.Box.Filler filler1;
+    private javax.swing.JMenu jMenu1;
+    private javax.swing.JMenu jMenu2;
+    private javax.swing.JMenuBar jMenuBar1;
+    private javax.swing.JPopupMenu.Separator jSeparator1;
+    private javax.swing.JPopupMenu.Separator jSeparator2;
+    private javax.swing.JPopupMenu.Separator jSeparator3;
     private javax.swing.JScrollPane listScrollPane;
     private javax.swing.JSplitPane listTreeSplitpane;
+    private javax.swing.JMenuItem loadMenuItem;
     private javax.swing.JButton loadXml;
+    private javax.swing.JMenuItem quitMenuItem;
+    private javax.swing.JMenuItem reloadMenuItem;
     private javax.swing.JButton renameNode;
+    private javax.swing.JMenuItem renameNodeMenuItem;
+    private javax.swing.JMenuItem saveMenuItem;
     private javax.swing.JButton saveXml;
     private javax.swing.JPanel tablePanel;
     private javax.swing.JScrollPane tableScrollPane;
@@ -561,4 +785,46 @@ public class XmlUI extends javax.swing.JFrame {
     private javax.swing.JTable xmlPropTable;
     private javax.swing.JTree xmlTree;
     // End of variables declaration//GEN-END:variables
+
+    class TreePopupMenu extends JPopupMenu implements ActionListener {
+
+        public TreePopupMenu() {
+            int shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMask();
+            create("Add Node", KeyStroke.getKeyStroke(KeyEvent.VK_N, shortcut));
+            create("Rename Node", KeyStroke.getKeyStroke(KeyEvent.VK_F2, shortcut));
+            create("Delete Nodes", KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0));
+            addSeparator();
+            create("Expand All", null);
+            create("Collapse All", null);
+        }
+
+        private void create(String text, KeyStroke key) {
+            JMenuItem item = new JMenuItem(text);
+            item.setAccelerator(key);
+            item.addActionListener(this);
+            add(item);
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            switch (e.getActionCommand()) {
+                case "Add Node":
+                    addNodeActionPerformed(null);
+                    break;
+                case "Rename Node":
+                    renameNodeActionPerformed(null);
+                    break;
+                case "Delete Nodes":
+                    deleteNodeActionPerformed(null);
+                    break;
+                case "Expand All":
+                    Utils.expandTree(xmlTree, true);
+                    break;
+                case "Collapse All":
+                    Utils.expandTree(xmlTree, false);
+                    break;
+            }
+        }
+
+    }
 }
