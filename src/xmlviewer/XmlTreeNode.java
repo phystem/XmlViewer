@@ -21,13 +21,13 @@ import org.w3c.dom.NodeList;
  * @author Phystem
  */
 public class XmlTreeNode extends DefaultMutableTreeNode implements TableModel {
-    
+
     private String name;
     private String text;
     private final List<String[]> attributes = new ArrayList<>();
-    
+
     private Action onValueChangeAction;
-    
+
     public XmlTreeNode(Element element) {
         this.name = element.getNodeName();
         this.text = getFirstLevelTextContent(element);
@@ -36,46 +36,46 @@ public class XmlTreeNode extends DefaultMutableTreeNode implements TableModel {
             attributes.add(new String[]{node.getNodeName(), node.getTextContent()});
         }
     }
-    
+
     public XmlTreeNode(String name) {
         this.name = name;
         this.text = "";
     }
-    
+
     public void setOnValueChangeAction(Action onValueChangeAction) {
         this.onValueChangeAction = onValueChangeAction;
     }
-    
+
     @Override
     public Class<?> getColumnClass(int columnIndex) {
         return String.class;
     }
-    
+
     @Override
     public void addTableModelListener(TableModelListener l) {
-        
+
     }
-    
+
     @Override
     public void removeTableModelListener(TableModelListener l) {
-        
+
     }
-    
+
     @Override
     public int getRowCount() {
         return 1 + 1 + attributes.size();
     }
-    
+
     @Override
     public int getColumnCount() {
         return 2;
     }
-    
+
     @Override
     public boolean isCellEditable(int rowIndex, int columnIndex) {
-        return !(columnIndex == 0 && rowIndex < 2) && !(columnIndex == 1 && rowIndex == 1);
+        return !(columnIndex == 0 && rowIndex < 2);
     }
-    
+
     @Override
     public String getColumnName(int column) {
         if (column == 0) {
@@ -83,7 +83,7 @@ public class XmlTreeNode extends DefaultMutableTreeNode implements TableModel {
         }
         return "Value";
     }
-    
+
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
         if (columnIndex == 0) {
@@ -106,7 +106,7 @@ public class XmlTreeNode extends DefaultMutableTreeNode implements TableModel {
             }
         }
     }
-    
+
     @Override
     public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
         if (!Objects.equals(getValueAt(rowIndex, columnIndex), aValue)) {
@@ -136,7 +136,7 @@ public class XmlTreeNode extends DefaultMutableTreeNode implements TableModel {
             }
         }
     }
-    
+
     private void notifyChange(String type, String name, String value) {
         if (onValueChangeAction != null) {
             onValueChangeAction.putValue("Type", type);
@@ -145,7 +145,7 @@ public class XmlTreeNode extends DefaultMutableTreeNode implements TableModel {
             onValueChangeAction.actionPerformed(null);
         }
     }
-    
+
     public void modifyValueByAction(Action action) {
         String type = action.getValue("Type").toString();
         String nameVal = action.getValue("Name").toString();
@@ -168,7 +168,7 @@ public class XmlTreeNode extends DefaultMutableTreeNode implements TableModel {
                 break;
         }
     }
-    
+
     private int getAttrIndexByName(String name) {
         for (int i = 0; i < attributes.size(); i++) {
             if (attributes.get(i)[0].equals(name)) {
@@ -177,43 +177,43 @@ public class XmlTreeNode extends DefaultMutableTreeNode implements TableModel {
         }
         return -1;
     }
-    
+
     private String getXpath(XmlTreeNode node) {
         return getElementXpath(node);
     }
-    
+
     public String getName() {
         return name;
     }
-    
+
     public void setName(String name) {
         this.name = name;
     }
-    
+
     public String getXpath() {
         return getXpath(this);
     }
-    
+
     public List<String[]> getAttributes() {
         return attributes;
     }
-    
+
     public String getText() {
         return text;
     }
-    
+
     @Override
     public String toString() {
         return name + " [" + getElementIndex(this) + "]";
     }
-    
+
     private static String getElementXpath(XmlTreeNode elt) {
         String path = "";
         try {
             for (; elt != null; elt = (XmlTreeNode) elt.getParent()) {
                 int idx = getElementIndex(elt);
                 String xname = elt.name;
-                
+
                 if (idx >= 1) {
                     xname += "[" + idx + "]";
                 }
@@ -223,20 +223,20 @@ public class XmlTreeNode extends DefaultMutableTreeNode implements TableModel {
         }
         return path;
     }
-    
+
     private static int getElementIndex(XmlTreeNode original) {
         int count = 1;
-        
+
         for (XmlTreeNode node = (XmlTreeNode) original.getPreviousSibling(); node != null;
                 node = (XmlTreeNode) node.getPreviousSibling()) {
             if (node.name.equals(original.name)) {
                 count++;
             }
         }
-        
+
         return count;
     }
-    
+
     private static String getFirstLevelTextContent(Node node) {
         NodeList list = node.getChildNodes();
         StringBuilder textContent = new StringBuilder();
@@ -248,5 +248,5 @@ public class XmlTreeNode extends DefaultMutableTreeNode implements TableModel {
         }
         return textContent.toString().trim();
     }
-    
+
 }

@@ -20,6 +20,7 @@ import java.util.Enumeration;
 import java.util.List;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
+import javax.swing.BoxLayout;
 import javax.swing.DefaultListModel;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
@@ -30,6 +31,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.TransferHandler;
 import javax.swing.event.CellEditorListener;
 import javax.swing.event.ChangeEvent;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
@@ -177,6 +180,21 @@ public class XmlUI extends javax.swing.JFrame {
             }
         };
 
+        searchText.getDocument().addDocumentListener(new DocumentListener() {
+            public void changedUpdate(DocumentEvent e) {
+                onTextChange();
+            }
+
+            public void removeUpdate(DocumentEvent e) {
+                onTextChange();
+            }
+
+            public void insertUpdate(DocumentEvent e) {
+                onTextChange();
+            }
+
+        });
+
     }
 
     /**
@@ -194,6 +212,13 @@ public class XmlUI extends javax.swing.JFrame {
         treePanel = new javax.swing.JPanel();
         treeScrollPane = new javax.swing.JScrollPane();
         xmlTree = new javax.swing.JTree();
+        searchBar = new javax.swing.JToolBar();
+        searchText = new javax.swing.JTextField();
+        filler3 = new javax.swing.Box.Filler(new java.awt.Dimension(10, 0), new java.awt.Dimension(10, 0), new java.awt.Dimension(10, 32767));
+        searchCount = new javax.swing.JLabel();
+        filler2 = new javax.swing.Box.Filler(new java.awt.Dimension(10, 0), new java.awt.Dimension(10, 0), new java.awt.Dimension(10, 32767));
+        previousSearch = new javax.swing.JButton();
+        nextSearch = new javax.swing.JButton();
         tablePanel = new javax.swing.JPanel();
         tableScrollPane = new javax.swing.JScrollPane();
         xmlPropTable = new javax.swing.JTable();
@@ -247,6 +272,48 @@ public class XmlUI extends javax.swing.JFrame {
         treeScrollPane.setViewportView(xmlTree);
 
         treePanel.add(treeScrollPane, java.awt.BorderLayout.CENTER);
+
+        searchBar.setBorder(javax.swing.BorderFactory.createEtchedBorder());
+        searchBar.setFloatable(false);
+        searchBar.setRollover(true);
+
+        searchText.setText("Search Text");
+        searchText.setToolTipText("To perform xpath search use -x before search string");
+        searchBar.add(searchText);
+        searchBar.add(filler3);
+
+        searchCount.setFont(new java.awt.Font("Tahoma", 1, 11)); // NOI18N
+        searchCount.setForeground(java.awt.Color.blue);
+        searchCount.setToolTipText("Search Count");
+        searchBar.add(searchCount);
+        searchBar.add(filler2);
+
+        previousSearch.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/back.png"))); // NOI18N
+        previousSearch.setToolTipText("Go To Previous Search");
+        previousSearch.setFocusable(false);
+        previousSearch.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        previousSearch.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        previousSearch.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                previousSearchActionPerformed(evt);
+            }
+        });
+        searchBar.add(previousSearch);
+
+        nextSearch.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/forward.png"))); // NOI18N
+        nextSearch.setToolTipText("Go To Next Search");
+        nextSearch.setFocusable(false);
+        nextSearch.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        nextSearch.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        nextSearch.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                nextSearchActionPerformed(evt);
+            }
+        });
+        searchBar.add(nextSearch);
+
+        treePanel.add(searchBar, java.awt.BorderLayout.NORTH);
+        searchBar.setLayout(new BoxLayout(searchBar,BoxLayout.X_AXIS));
 
         treeTableSplitPane.setTopComponent(treePanel);
 
@@ -564,6 +631,14 @@ public class XmlUI extends javax.swing.JFrame {
         Utils.expandTree(xmlTree, false);
     }//GEN-LAST:event_collapseNodesActionPerformed
 
+    private void nextSearchActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_nextSearchActionPerformed
+        nextSearch(searchText.getText());
+    }//GEN-LAST:event_nextSearchActionPerformed
+
+    private void previousSearchActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_previousSearchActionPerformed
+        prevoiusSearch(searchText.getText());
+    }//GEN-LAST:event_previousSearchActionPerformed
+
     private void checkAndAddFiles(File[] files) {
         for (File file : files) {
             if (file.isDirectory()) {
@@ -712,6 +787,117 @@ public class XmlUI extends javax.swing.JFrame {
         xmlListModel.addElement(sFile);
     }
 
+    public void onTextChange() {
+        String text = searchText.getText();
+        if (!text.isEmpty()) {
+            searchAndSelect(text);
+        } else {
+            searchCount.setText("");
+        }
+    }
+
+    private void searchAndSelect(String text) {
+        Boolean isXpath = false;
+        if (text.startsWith("-x")) {
+            isXpath = true;
+            text = text.substring(2);
+        }
+
+        XmlTreeNode root = (XmlTreeNode) xmlTree.getModel().getRoot();
+        int count = 0;
+        XmlTreeNode snode = null;
+        Enumeration e = root.preorderEnumeration();
+        while (e.hasMoreElements()) {
+            XmlTreeNode node = (XmlTreeNode) e.nextElement();
+            Boolean found;
+            if (isXpath) {
+                found = node.getXpath().equalsIgnoreCase(text);
+            } else {
+                found = node.toString().contains(text);
+            }
+            if (found) {
+                if (snode == null) {
+                    snode = node;
+                }
+                count++;
+            }
+        }
+        if (snode != null) {
+            selectAndScroll(snode);
+            searchCount.setText(count + "");
+        } else {
+            searchCount.setText("");
+        }
+    }
+
+    private void nextSearch(String text) {
+        if (xmlTree.getSelectionPath() != null) {
+            Boolean isXpath = false;
+            if (text.startsWith("-x")) {
+                isXpath = true;
+                text = text.substring(2);
+            }
+            XmlTreeNode curr = (XmlTreeNode) xmlTree.getSelectionPath().getLastPathComponent();
+            if (curr.getNextNode() != null) {
+                curr = (XmlTreeNode) curr.getNextNode();
+            } else {
+                return;
+            }
+            while (curr.getNextNode() != null) {
+                curr = (XmlTreeNode) curr.getNextNode();
+                Boolean found;
+                if (isXpath) {
+                    found = curr.getXpath().equalsIgnoreCase(text);
+                } else {
+                    found = curr.toString().contains(text);
+                }
+                if (found) {
+                    selectAndScroll(curr);
+                    break;
+                }
+            }
+        } else {
+            searchAndSelect(text);
+        }
+    }
+
+    private void prevoiusSearch(String text) {
+        if (xmlTree.getSelectionPath() != null) {
+            Boolean isXpath = false;
+            if (text.startsWith("-x")) {
+                isXpath = true;
+                text = text.substring(2);
+            }
+            XmlTreeNode curr = (XmlTreeNode) xmlTree.getSelectionPath().getLastPathComponent();
+            if (curr.getNextNode() != null) {
+                curr = (XmlTreeNode) curr.getPreviousNode();
+            } else {
+                return;
+            }
+            while (curr.getPreviousNode() != null) {
+                curr = (XmlTreeNode) curr.getPreviousNode();
+                Boolean found;
+                if (isXpath) {
+                    found = curr.getXpath().equalsIgnoreCase(text);
+                } else {
+                    found = curr.toString().contains(text);
+                }
+                if (found) {
+                    selectAndScroll(curr);
+                    break;
+                }
+            }
+        } else {
+            searchAndSelect(text);
+        }
+    }
+
+    private void selectAndScroll(XmlTreeNode node) {
+        TreePath path = new TreePath(node.getPath());
+        xmlTree.setSelectionPath(path);
+        xmlTree.scrollPathToVisible(path);
+    }
+
     /**
      * @param args the command line arguments
      */
@@ -758,6 +944,8 @@ public class XmlUI extends javax.swing.JFrame {
     private javax.swing.JMenuItem deleteNodesMenuItem;
     private javax.swing.JMenuItem expandNodes;
     private javax.swing.Box.Filler filler1;
+    private javax.swing.Box.Filler filler2;
+    private javax.swing.Box.Filler filler3;
     private javax.swing.JMenu jMenu1;
     private javax.swing.JMenu jMenu2;
     private javax.swing.JMenuBar jMenuBar1;
@@ -768,12 +956,17 @@ public class XmlUI extends javax.swing.JFrame {
     private javax.swing.JSplitPane listTreeSplitpane;
     private javax.swing.JMenuItem loadMenuItem;
     private javax.swing.JButton loadXml;
+    private javax.swing.JButton nextSearch;
+    private javax.swing.JButton previousSearch;
     private javax.swing.JMenuItem quitMenuItem;
     private javax.swing.JMenuItem reloadMenuItem;
     private javax.swing.JButton renameNode;
     private javax.swing.JMenuItem renameNodeMenuItem;
     private javax.swing.JMenuItem saveMenuItem;
     private javax.swing.JButton saveXml;
+    private javax.swing.JToolBar searchBar;
+    private javax.swing.JLabel searchCount;
+    private javax.swing.JTextField searchText;
     private javax.swing.JPanel tablePanel;
     private javax.swing.JScrollPane tableScrollPane;
     private javax.swing.JToolBar toolBar;
