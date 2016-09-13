@@ -18,6 +18,8 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.BoxLayout;
@@ -43,6 +45,9 @@ import static xmlviewer.Utils.XML_FILE_FILTER;
  * @author Phystem
  */
 public class XmlUI extends javax.swing.JFrame {
+
+    String regex = "(-x (?<xpath>.+))|(-n (?<node>.+) -v (?<value>.+))|-v (?<val>.+)|(?<any>.+)";
+    Pattern pattern = Pattern.compile(regex);
 
     DefaultListModel xmlListModel;
     TreePopupMenu popupMenu;
@@ -278,7 +283,7 @@ public class XmlUI extends javax.swing.JFrame {
         searchBar.setRollover(true);
 
         searchText.setText("Search Text");
-        searchText.setToolTipText("To perform xpath search use -x before search string");
+        searchText.setToolTipText("<html>\n\nFor Xpath Search : <b>-x</b> /catalog[1]/Book[1]\n<br/>\nFor Node name and Node Text Search : <b>-n</b> nodename <b>-v</b> nodeText\n<br/>\nFor Node Text Search : <b>-v</b> nodeText\n<br/>\nFor Node name Search : any value\n<br/>\n\n\n\n\n</html>");
         searchBar.add(searchText);
         searchBar.add(filler3);
 
@@ -797,63 +802,61 @@ public class XmlUI extends javax.swing.JFrame {
     }
 
     private void searchAndSelect(String text) {
-        Boolean isXpath = false;
-        if (text.startsWith("-x")) {
-            isXpath = true;
-            text = text.substring(2);
-        }
-
-        XmlTreeNode root = (XmlTreeNode) xmlTree.getModel().getRoot();
-        int count = 0;
-        XmlTreeNode snode = null;
-        Enumeration e = root.preorderEnumeration();
-        while (e.hasMoreElements()) {
-            XmlTreeNode node = (XmlTreeNode) e.nextElement();
-            Boolean found;
-            if (isXpath) {
-                found = node.getXpath().equalsIgnoreCase(text);
-            } else {
-                found = node.toString().contains(text);
-            }
-            if (found) {
-                if (snode == null) {
-                    snode = node;
+        Matcher matcher = pattern.matcher(text);
+        if (matcher.matches()) {
+            XmlTreeNode root = (XmlTreeNode) xmlTree.getModel().getRoot();
+            int count = 0;
+            XmlTreeNode snode = null;
+            Enumeration e = root.preorderEnumeration();
+            while (e.hasMoreElements()) {
+                XmlTreeNode node = (XmlTreeNode) e.nextElement();
+                if (check(matcher, node)) {
+                    if (snode == null) {
+                        snode = node;
+                    }
+                    count++;
                 }
-                count++;
+            }
+            if (snode != null) {
+                selectAndScroll(snode);
+                searchCount.setText(count + "");
+            } else {
+                searchCount.setText("");
             }
         }
-        if (snode != null) {
-            selectAndScroll(snode);
-            searchCount.setText(count + "");
+    }
+
+    private Boolean check(Matcher matcher, XmlTreeNode node) {
+        Boolean found;
+        if (matcher.group("xpath") != null) {
+            found = node.getXpath().contains(matcher.group("xpath"));
+        } else if (matcher.group("node") != null) {
+            found = node.toString().contains(matcher.group("node"))
+                    && node.getText().contains(matcher.group("value"));
+        } else if (matcher.group("val") != null) {
+            found = node.getText().contains(matcher.group("val"));
         } else {
-            searchCount.setText("");
+            found = node.toString().contains(matcher.group("any"));
         }
+        return found;
     }
 
     private void nextSearch(String text) {
         if (xmlTree.getSelectionPath() != null) {
-            Boolean isXpath = false;
-            if (text.startsWith("-x")) {
-                isXpath = true;
-                text = text.substring(2);
-            }
-            XmlTreeNode curr = (XmlTreeNode) xmlTree.getSelectionPath().getLastPathComponent();
-            if (curr.getNextNode() != null) {
-                curr = (XmlTreeNode) curr.getNextNode();
-            } else {
-                return;
-            }
-            while (curr.getNextNode() != null) {
-                curr = (XmlTreeNode) curr.getNextNode();
-                Boolean found;
-                if (isXpath) {
-                    found = curr.getXpath().equalsIgnoreCase(text);
+            Matcher matcher = pattern.matcher(text);
+            if (matcher.matches()) {
+                XmlTreeNode curr = (XmlTreeNode) xmlTree.getSelectionPath().getLastPathComponent();
+                if (curr.getNextNode() != null) {
+                    curr = (XmlTreeNode) curr.getNextNode();
                 } else {
-                    found = curr.toString().contains(text);
+                    return;
                 }
-                if (found) {
-                    selectAndScroll(curr);
-                    break;
+                while (curr.getNextNode() != null) {
+                    curr = (XmlTreeNode) curr.getNextNode();
+                    if (check(matcher, curr)) {
+                        selectAndScroll(curr);
+                        break;
+                    }
                 }
             }
         } else {
@@ -863,28 +866,20 @@ public class XmlUI extends javax.swing.JFrame {
 
     private void prevoiusSearch(String text) {
         if (xmlTree.getSelectionPath() != null) {
-            Boolean isXpath = false;
-            if (text.startsWith("-x")) {
-                isXpath = true;
-                text = text.substring(2);
-            }
-            XmlTreeNode curr = (XmlTreeNode) xmlTree.getSelectionPath().getLastPathComponent();
-            if (curr.getNextNode() != null) {
-                curr = (XmlTreeNode) curr.getPreviousNode();
-            } else {
-                return;
-            }
-            while (curr.getPreviousNode() != null) {
-                curr = (XmlTreeNode) curr.getPreviousNode();
-                Boolean found;
-                if (isXpath) {
-                    found = curr.getXpath().equalsIgnoreCase(text);
+            Matcher matcher = pattern.matcher(text);
+            if (matcher.matches()) {
+                XmlTreeNode curr = (XmlTreeNode) xmlTree.getSelectionPath().getLastPathComponent();
+                if (curr.getNextNode() != null) {
+                    curr = (XmlTreeNode) curr.getPreviousNode();
                 } else {
-                    found = curr.toString().contains(text);
+                    return;
                 }
-                if (found) {
-                    selectAndScroll(curr);
-                    break;
+                while (curr.getPreviousNode() != null) {
+                    curr = (XmlTreeNode) curr.getPreviousNode();
+                    if (check(matcher, curr)) {
+                        selectAndScroll(curr);
+                        break;
+                    }
                 }
             }
         } else {

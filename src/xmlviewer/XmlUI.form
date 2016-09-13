@@ -227,7 +227,7 @@
                     <Component class="javax.swing.JTextField" name="searchText">
                       <Properties>
                         <Property name="text" type="java.lang.String" value="Search Text"/>
-                        <Property name="toolTipText" type="java.lang.String" value="To perform xpath search use -x before search string"/>
+                        <Property name="toolTipText" type="java.lang.String" value="&lt;html&gt;&#xa;&#xa;For Xpath Search : &lt;b&gt;-x&lt;/b&gt; /catalog[1]/Book[1]&#xa;&lt;br/&gt;&#xa;For Node name and Node Text Search : &lt;b&gt;-n&lt;/b&gt; nodename &lt;b&gt;-v&lt;/b&gt; nodeText&#xa;&lt;br/&gt;&#xa;For Node Text Search : &lt;b&gt;-v&lt;/b&gt; nodeText&#xa;&lt;br/&gt;&#xa;For Node name Search : any value&#xa;&lt;br/&gt;&#xa;&#xa;&#xa;&#xa;&#xa;&lt;/html&gt;"/>
                       </Properties>
                     </Component>
                     <Component class="javax.swing.Box$Filler" name="filler3">
