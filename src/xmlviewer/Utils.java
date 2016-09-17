@@ -5,6 +5,7 @@
  */
 package xmlviewer;
 
+import java.awt.Component;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileOutputStream;
@@ -12,7 +13,11 @@ import java.io.IOException;
 import java.util.Enumeration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JFileChooser;
+import javax.swing.JTable;
 import javax.swing.JTree;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableColumn;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeNode;
@@ -165,6 +170,42 @@ public class Utils {
         } else {
             tree.collapsePath(path);
         }
+    }
+
+    public static void resizeTable(JTable table) {
+        for (int column = 0; column < table.getColumnCount(); column++) {
+            TableColumn tableColumn = table.getColumnModel().getColumn(column);
+            int preferredWidth = tableColumn.getMinWidth();
+            int maxWidth = tableColumn.getMaxWidth();
+
+            for (int row = 0; row < table.getRowCount(); row++) {
+                TableCellRenderer cellRenderer = table.getCellRenderer(row, column);
+                Component c = table.prepareRenderer(cellRenderer, row, column);
+                int width = c.getPreferredSize().width + table.getIntercellSpacing().width;
+                preferredWidth = Math.max(preferredWidth, width);
+
+                //  We've exceeded the maximum width, no need to check other rows
+                if (preferredWidth >= maxWidth) {
+                    preferredWidth = maxWidth;
+                    break;
+                }
+            }
+
+            tableColumn.setPreferredWidth(preferredWidth);
+        }
+
+        table.setRowHeight(100);
+
+    }
+
+    public static File getFileChooser() {
+        JFileChooser xmlFileChooser = new JFileChooser(new File(System.getProperty("user.dir")));
+        xmlFileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        int val = xmlFileChooser.showSaveDialog(null);
+        if (val == JFileChooser.APPROVE_OPTION) {
+            return xmlFileChooser.getSelectedFile();
+        }
+        return null;
     }
 
 }

@@ -5,6 +5,10 @@
  */
 package xmlviewer;
 
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
@@ -15,19 +19,26 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.AbstractAction;
+import javax.swing.AbstractCellEditor;
 import javax.swing.Action;
+import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.DefaultListModel;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.TransferHandler;
@@ -36,6 +47,8 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.table.TableCellEditor;
+import javax.swing.table.TableCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 import static xmlviewer.Utils.XML_FILE_FILTER;
@@ -64,8 +77,10 @@ public class XmlUI extends javax.swing.JFrame {
         xmlList.setModel(xmlListModel);
         xmlFileChooser.setMultiSelectionEnabled(true);
 
+        mockPanel.setVisible(mockDataToggle.isSelected());
+
         setSize(700, 700);
-        listTreeSplitpane.setDividerLocation(0.5);
+        listTreeSplitpane.setDividerLocation(0.3);
         treeTableSplitPane.setDividerLocation(0.7);
         setLocationRelativeTo(null);
         initListeners();
@@ -200,6 +215,10 @@ public class XmlUI extends javax.swing.JFrame {
 
         });
 
+        mockTable.setDefaultRenderer(XmlTreeNode.class, new MockRenderer());
+        mockTable.setDefaultEditor(XmlTreeNode.class, new MockCellEditor());
+        mockTable.getTableHeader().setDefaultRenderer(new MockHeaderRenderer());
+
     }
 
     /**
@@ -214,6 +233,7 @@ public class XmlUI extends javax.swing.JFrame {
         xmlFileChooser = new javax.swing.JFileChooser();
         listTreeSplitpane = new javax.swing.JSplitPane();
         treeTableSplitPane = new javax.swing.JSplitPane();
+        treeMockPane = new javax.swing.JSplitPane();
         treePanel = new javax.swing.JPanel();
         treeScrollPane = new javax.swing.JScrollPane();
         xmlTree = new javax.swing.JTree();
@@ -227,6 +247,15 @@ public class XmlUI extends javax.swing.JFrame {
         tablePanel = new javax.swing.JPanel();
         tableScrollPane = new javax.swing.JScrollPane();
         xmlPropTable = new javax.swing.JTable();
+        mockPanel = new javax.swing.JPanel();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        mockTable = new javax.swing.JTable();
+        jToolBar1 = new javax.swing.JToolBar();
+        filler5 = new javax.swing.Box.Filler(new java.awt.Dimension(20, 0), new java.awt.Dimension(20, 0), new java.awt.Dimension(20, 32767));
+        mockNum = new javax.swing.JSpinner();
+        mockStart = new javax.swing.JButton();
+        filler4 = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(32767, 32767));
+        createMocks = new javax.swing.JButton();
         listScrollPane = new javax.swing.JScrollPane();
         xmlList = new javax.swing.JList();
         toolBar = new javax.swing.JToolBar();
@@ -236,6 +265,8 @@ public class XmlUI extends javax.swing.JFrame {
         addNode = new javax.swing.JButton();
         renameNode = new javax.swing.JButton();
         deleteNode = new javax.swing.JButton();
+        jSeparator4 = new javax.swing.JToolBar.Separator();
+        mockDataToggle = new javax.swing.JToggleButton();
         jMenuBar1 = new javax.swing.JMenuBar();
         jMenu1 = new javax.swing.JMenu();
         loadMenuItem = new javax.swing.JMenuItem();
@@ -261,7 +292,14 @@ public class XmlUI extends javax.swing.JFrame {
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Simple Xml Viewer");
 
-        treeTableSplitPane.setOrientation(javax.swing.JSplitPane.VERTICAL_SPLIT);
+        listTreeSplitpane.setResizeWeight(0.3);
+        listTreeSplitpane.setOneTouchExpandable(true);
+
+        treeTableSplitPane.setResizeWeight(0.5);
+        treeTableSplitPane.setOneTouchExpandable(true);
+
+        treeMockPane.setOrientation(javax.swing.JSplitPane.VERTICAL_SPLIT);
+        treeMockPane.setResizeWeight(0.7);
 
         treePanel.setBorder(javax.swing.BorderFactory.createTitledBorder("Xml Tree View"));
         treePanel.setLayout(new java.awt.BorderLayout());
@@ -320,7 +358,7 @@ public class XmlUI extends javax.swing.JFrame {
         treePanel.add(searchBar, java.awt.BorderLayout.NORTH);
         searchBar.setLayout(new BoxLayout(searchBar,BoxLayout.X_AXIS));
 
-        treeTableSplitPane.setTopComponent(treePanel);
+        treeMockPane.setTopComponent(treePanel);
 
         tablePanel.setBorder(javax.swing.BorderFactory.createTitledBorder("Node Details"));
         tablePanel.setLayout(new java.awt.BorderLayout());
@@ -345,7 +383,63 @@ public class XmlUI extends javax.swing.JFrame {
 
         tablePanel.add(tableScrollPane, java.awt.BorderLayout.CENTER);
 
-        treeTableSplitPane.setRightComponent(tablePanel);
+        treeMockPane.setRightComponent(tablePanel);
+
+        treeTableSplitPane.setLeftComponent(treeMockPane);
+
+        mockPanel.setLayout(new java.awt.BorderLayout());
+
+        mockTable.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+
+            },
+            new String [] {
+
+            }
+        ));
+        mockTable.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_OFF);
+        mockTable.setCellSelectionEnabled(true);
+        jScrollPane1.setViewportView(mockTable);
+
+        mockPanel.add(jScrollPane1, java.awt.BorderLayout.CENTER);
+
+        jToolBar1.setBorder(javax.swing.BorderFactory.createEtchedBorder());
+        jToolBar1.setFloatable(false);
+        jToolBar1.setRollover(true);
+        jToolBar1.add(filler5);
+
+        mockNum.setModel(new javax.swing.SpinnerNumberModel(Integer.valueOf(1), Integer.valueOf(1), null, Integer.valueOf(1)));
+        mockNum.setMaximumSize(new java.awt.Dimension(50, 32767));
+        mockNum.setMinimumSize(new java.awt.Dimension(50, 30));
+        mockNum.setPreferredSize(new java.awt.Dimension(50, 30));
+        jToolBar1.add(mockNum);
+
+        mockStart.setText("Start Mocking");
+        mockStart.setFocusable(false);
+        mockStart.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        mockStart.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        mockStart.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                mockStartActionPerformed(evt);
+            }
+        });
+        jToolBar1.add(mockStart);
+        jToolBar1.add(filler4);
+
+        createMocks.setText("Create Mock Files");
+        createMocks.setFocusable(false);
+        createMocks.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        createMocks.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        createMocks.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                createMocksActionPerformed(evt);
+            }
+        });
+        jToolBar1.add(createMocks);
+
+        mockPanel.add(jToolBar1, java.awt.BorderLayout.PAGE_START);
+
+        treeTableSplitPane.setRightComponent(mockPanel);
 
         listTreeSplitpane.setRightComponent(treeTableSplitPane);
 
@@ -428,6 +522,21 @@ public class XmlUI extends javax.swing.JFrame {
             }
         });
         toolBar.add(deleteNode);
+        toolBar.add(jSeparator4);
+
+        mockDataToggle.setIcon(new javax.swing.ImageIcon(getClass().getResource("/icons/duplicate.png"))); // NOI18N
+        mockDataToggle.setText("Mock Data");
+        mockDataToggle.setFocusable(false);
+        mockDataToggle.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+        mockDataToggle.setMaximumSize(new java.awt.Dimension(107, 43));
+        mockDataToggle.setMinimumSize(new java.awt.Dimension(107, 43));
+        mockDataToggle.setPreferredSize(new java.awt.Dimension(107, 43));
+        mockDataToggle.addItemListener(new java.awt.event.ItemListener() {
+            public void itemStateChanged(java.awt.event.ItemEvent evt) {
+                mockDataToggleItemStateChanged(evt);
+            }
+        });
+        toolBar.add(mockDataToggle);
 
         getContentPane().add(toolBar, java.awt.BorderLayout.NORTH);
 
@@ -643,6 +752,28 @@ public class XmlUI extends javax.swing.JFrame {
     private void previousSearchActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_previousSearchActionPerformed
         prevoiusSearch(searchText.getText());
     }//GEN-LAST:event_previousSearchActionPerformed
+
+    private void mockDataToggleItemStateChanged(java.awt.event.ItemEvent evt) {//GEN-FIRST:event_mockDataToggleItemStateChanged
+        mockPanel.setVisible(mockDataToggle.isSelected());
+        if (mockDataToggle.isSelected()) {
+            listTreeSplitpane.setDividerLocation(0.3);
+            treeTableSplitPane.setDividerLocation(0.3);
+        }
+    }//GEN-LAST:event_mockDataToggleItemStateChanged
+
+    private void mockStartActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mockStartActionPerformed
+        initMocks();
+    }//GEN-LAST:event_mockStartActionPerformed
+
+    private void createMocksActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_createMocksActionPerformed
+        if (mockTable.getModel() instanceof XmlTableModel
+                && ((XmlTableModel) mockTable.getModel()).save()) {
+            System.out.println("Saved");
+            JOptionPane.showMessageDialog(this, "Mocked Files are created successfully");
+        } else {
+            JOptionPane.showMessageDialog(this, "Couldn't Save");
+        }
+    }//GEN-LAST:event_createMocksActionPerformed
 
     private void checkAndAddFiles(File[] files) {
         for (File file : files) {
@@ -893,6 +1024,18 @@ public class XmlUI extends javax.swing.JFrame {
         xmlTree.scrollPathToVisible(path);
     }
 
+    private void initMocks() {
+        TreePath[] paths = xmlTree.getSelectionPaths();
+        if (paths != null && paths.length > 0) {
+            List<XmlTreeNode> nodes = new ArrayList<>();
+            for (TreePath path : paths) {
+                nodes.add((XmlTreeNode) path.getLastPathComponent());
+            }
+            mockTable.setModel(new XmlTableModel(Integer.valueOf(mockNum.getValue().toString()), nodes));
+            Utils.resizeTable(mockTable);
+        }
+    }
+
     /**
      * @param args the command line arguments
      */
@@ -906,6 +1049,7 @@ public class XmlUI extends javax.swing.JFrame {
             for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
                 if ("Nimbus".equals(info.getName())) {
                     javax.swing.UIManager.setLookAndFeel(info.getClassName());
+                    javax.swing.UIManager.put("Button.disabledText", Color.GRAY);
                     break;
                 }
             }
@@ -935,22 +1079,33 @@ public class XmlUI extends javax.swing.JFrame {
     private javax.swing.JMenuItem addNodeMenuItem;
     private javax.swing.JCheckBoxMenuItem applyChangesMenuItem;
     private javax.swing.JMenuItem collapseNodes;
+    private javax.swing.JButton createMocks;
     private javax.swing.JButton deleteNode;
     private javax.swing.JMenuItem deleteNodesMenuItem;
     private javax.swing.JMenuItem expandNodes;
     private javax.swing.Box.Filler filler1;
     private javax.swing.Box.Filler filler2;
     private javax.swing.Box.Filler filler3;
+    private javax.swing.Box.Filler filler4;
+    private javax.swing.Box.Filler filler5;
     private javax.swing.JMenu jMenu1;
     private javax.swing.JMenu jMenu2;
     private javax.swing.JMenuBar jMenuBar1;
+    private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JPopupMenu.Separator jSeparator1;
     private javax.swing.JPopupMenu.Separator jSeparator2;
     private javax.swing.JPopupMenu.Separator jSeparator3;
+    private javax.swing.JToolBar.Separator jSeparator4;
+    private javax.swing.JToolBar jToolBar1;
     private javax.swing.JScrollPane listScrollPane;
     private javax.swing.JSplitPane listTreeSplitpane;
     private javax.swing.JMenuItem loadMenuItem;
     private javax.swing.JButton loadXml;
+    private javax.swing.JToggleButton mockDataToggle;
+    private javax.swing.JSpinner mockNum;
+    private javax.swing.JPanel mockPanel;
+    private javax.swing.JButton mockStart;
+    private javax.swing.JTable mockTable;
     private javax.swing.JButton nextSearch;
     private javax.swing.JButton previousSearch;
     private javax.swing.JMenuItem quitMenuItem;
@@ -965,6 +1120,7 @@ public class XmlUI extends javax.swing.JFrame {
     private javax.swing.JPanel tablePanel;
     private javax.swing.JScrollPane tableScrollPane;
     private javax.swing.JToolBar toolBar;
+    private javax.swing.JSplitPane treeMockPane;
     private javax.swing.JPanel treePanel;
     private javax.swing.JScrollPane treeScrollPane;
     private javax.swing.JSplitPane treeTableSplitPane;
@@ -1012,6 +1168,83 @@ public class XmlUI extends javax.swing.JFrame {
                     Utils.expandTree(xmlTree, false);
                     break;
             }
+        }
+
+    }
+
+    class MockRenderer implements TableCellRenderer {
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            if (value instanceof XmlTreeNode) {
+                XmlTreeNode node = (XmlTreeNode) value;
+                JTable nTable = new JTable(node);
+                nTable.setCellSelectionEnabled(true);
+                nTable.setPreferredSize(new Dimension(200, 80));
+
+                JPanel panel = new JPanel(new BorderLayout());
+                panel.add(nTable.getTableHeader(), BorderLayout.NORTH);
+                panel.add(nTable, BorderLayout.CENTER);
+                panel.setBorder(BorderFactory.createLineBorder(Color.BLACK));;
+                return panel;
+            }
+            return null;
+        }
+
+    }
+
+    class MockHeaderRenderer implements TableCellRenderer {
+
+        TableCellRenderer defHeaderRenderer;
+
+        public MockHeaderRenderer() {
+            defHeaderRenderer = mockTable.getTableHeader().getDefaultRenderer();
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            JComponent comp = (JComponent) defHeaderRenderer.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            if (table.getModel() instanceof XmlTableModel) {
+                XmlTableModel model = (XmlTableModel) table.getModel();
+                comp.setToolTipText(model.getColumnToolTip(column));
+            }
+            return comp;
+        }
+
+    }
+
+    class MockCellEditor extends AbstractCellEditor implements TableCellEditor {
+
+        JScrollPane val;
+        JTable nTable;
+
+        @Override
+        public Component getTableCellEditorComponent(JTable table,
+                Object value, boolean isSelected, int row, int column) {
+            if (value instanceof XmlTreeNode) {
+                XmlTreeNode node = (XmlTreeNode) value;
+                nTable = new JTable(node);
+                nTable.setCellSelectionEnabled(true);
+                val = new JScrollPane(nTable);
+                return val;
+            }
+            return null;
+        }
+
+        @Override
+        public Object getCellEditorValue() {
+            return val;
+        }
+
+        @Override
+        public boolean stopCellEditing() {
+            if (super.stopCellEditing()) {
+                if (nTable != null) {
+                    nTable.getCellEditor().stopCellEditing();
+                }
+                return true;
+            }
+            return false;
         }
 
     }
