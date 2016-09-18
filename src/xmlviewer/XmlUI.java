@@ -647,6 +647,7 @@ public class XmlUI extends javax.swing.JFrame {
                 xmlTree.setModel(model.treeModel);
                 XmlTreeNode root = (XmlTreeNode) model.treeModel.getRoot();
                 xmlTree.setSelectionPath(new TreePath(root.getFirstLeaf().getPath()));
+                Utils.expandTree(xmlTree, true);
             }
         }
     }//GEN-LAST:event_xmlListValueChanged
@@ -1239,7 +1240,7 @@ public class XmlUI extends javax.swing.JFrame {
         @Override
         public boolean stopCellEditing() {
             if (super.stopCellEditing()) {
-                if (nTable != null) {
+                if (nTable != null && nTable.isEditing() && nTable.getCellEditor() != null) {
                     nTable.getCellEditor().stopCellEditing();
                 }
                 return true;

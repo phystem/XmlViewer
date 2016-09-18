@@ -8,6 +8,7 @@ package xmlviewer;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.JOptionPane;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.tree.DefaultTreeModel;
 
@@ -88,20 +89,39 @@ public class XmlTableModel extends AbstractTableModel {
     }
 
     public Boolean save() {
-        File location = Utils.getFileChooser();
-        if (location != null) {
-            List<XmlTreeNode> realNodes = new ArrayList<>();
-            for (XmlTreeNode node : nodes) {
-                realNodes.add((XmlTreeNode) node.clone());
+        String mockName = JOptionPane.showInputDialog(null,
+                "<html>Use <b>{index}</b> to specify index."
+                + "<br/>"
+                + "For ex"
+                + "<br/>"
+                + "<b>dupMock_{index}</b> will generate <b>dupMock_1.xml</b>"
+                + "<br/>"
+                + "<b>Mock_{index}_data</b> will generate <b>Mock_1_data.xml</b>"
+                + "</html>",
+                "Enter the Mock Name Format",
+                JOptionPane.OK_OPTION);
+        if (mockName != null && !mockName.isEmpty()) {
+
+            if (!mockName.contains("{index}")) {
+                mockName = mockName + "{index}";
             }
 
-            for (int dup = 0; dup < duplicates.size(); dup++) {
-                List<XmlTreeNode> duplicate = duplicates.get(dup);
-                replaceReal(duplicate);
-                Utils.saveFromTreeModel(new DefaultTreeModel(nodes.get(0).getRoot()), new File(location, "Mock_" + dup));
+            File location = Utils.getFileChooser();
+            if (location != null) {
+                List<XmlTreeNode> realNodes = new ArrayList<>();
+                for (XmlTreeNode node : nodes) {
+                    realNodes.add((XmlTreeNode) node.clone());
+                }
+
+                for (int dup = 0; dup < duplicates.size(); dup++) {
+                    List<XmlTreeNode> duplicate = duplicates.get(dup);
+                    replaceReal(duplicate);
+                    Utils.saveFromTreeModel(new DefaultTreeModel(nodes.get(0).getRoot()),
+                            new File(location, mockName.replace("{index}", dup + 1 + "") + ".xml"));
+                }
+                replaceReal(realNodes);
+                return true;
             }
-            replaceReal(realNodes);
-            return true;
         }
         return false;
     }
