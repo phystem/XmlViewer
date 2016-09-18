@@ -33,11 +33,13 @@ import javax.swing.BoxLayout;
 import javax.swing.DefaultListModel;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
+import javax.swing.JFormattedTextField;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
+import javax.swing.JSpinner;
 import javax.swing.JTable;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
@@ -49,6 +51,7 @@ import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
+import javax.swing.text.DefaultFormatter;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 import static xmlviewer.Utils.XML_FILE_FILTER;
@@ -87,6 +90,11 @@ public class XmlUI extends javax.swing.JFrame {
     }
 
     private void initListeners() {
+
+        JFormattedTextField field = ((JSpinner.DefaultEditor) mockNum.getEditor()).getTextField();
+        DefaultFormatter formatter = (DefaultFormatter) field.getFormatter();
+        formatter.setCommitsOnValidEdit(true);
+
         xmlTree.getCellEditor().addCellEditorListener(new CellEditorListener() {
 
             @Override
@@ -253,8 +261,10 @@ public class XmlUI extends javax.swing.JFrame {
         jToolBar1 = new javax.swing.JToolBar();
         filler5 = new javax.swing.Box.Filler(new java.awt.Dimension(20, 0), new java.awt.Dimension(20, 0), new java.awt.Dimension(20, 32767));
         mockNum = new javax.swing.JSpinner();
+        jPanel2 = new javax.swing.JPanel();
         mockStart = new javax.swing.JButton();
         filler4 = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(32767, 32767));
+        jPanel1 = new javax.swing.JPanel();
         createMocks = new javax.swing.JButton();
         listScrollPane = new javax.swing.JScrollPane();
         xmlList = new javax.swing.JList();
@@ -414,6 +424,8 @@ public class XmlUI extends javax.swing.JFrame {
         mockNum.setPreferredSize(new java.awt.Dimension(50, 30));
         jToolBar1.add(mockNum);
 
+        jPanel2.setLayout(new java.awt.BorderLayout());
+
         mockStart.setText("Start Mocking");
         mockStart.setFocusable(false);
         mockStart.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
@@ -423,8 +435,12 @@ public class XmlUI extends javax.swing.JFrame {
                 mockStartActionPerformed(evt);
             }
         });
-        jToolBar1.add(mockStart);
+        jPanel2.add(mockStart, java.awt.BorderLayout.CENTER);
+
+        jToolBar1.add(jPanel2);
         jToolBar1.add(filler4);
+
+        jPanel1.setLayout(new java.awt.BorderLayout());
 
         createMocks.setText("Create Mock Files");
         createMocks.setFocusable(false);
@@ -435,7 +451,9 @@ public class XmlUI extends javax.swing.JFrame {
                 createMocksActionPerformed(evt);
             }
         });
-        jToolBar1.add(createMocks);
+        jPanel1.add(createMocks, java.awt.BorderLayout.CENTER);
+
+        jToolBar1.add(jPanel1);
 
         mockPanel.add(jToolBar1, java.awt.BorderLayout.PAGE_START);
 
@@ -1092,6 +1110,8 @@ public class XmlUI extends javax.swing.JFrame {
     private javax.swing.JMenu jMenu1;
     private javax.swing.JMenu jMenu2;
     private javax.swing.JMenuBar jMenuBar1;
+    private javax.swing.JPanel jPanel1;
+    private javax.swing.JPanel jPanel2;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JPopupMenu.Separator jSeparator1;
     private javax.swing.JPopupMenu.Separator jSeparator2;
