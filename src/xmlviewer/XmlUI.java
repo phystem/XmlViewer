@@ -21,8 +21,11 @@ import java.awt.event.WindowEvent;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.AbstractAction;
@@ -41,6 +44,7 @@ import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTable;
+import javax.swing.JTree;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.TransferHandler;
@@ -49,9 +53,11 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.text.DefaultFormatter;
+import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 import static xmlviewer.Utils.XML_FILE_FILTER;
@@ -75,6 +81,12 @@ public class XmlUI extends javax.swing.JFrame {
      */
     public XmlUI() {
         initComponents();
+        initDefaults();
+        initListeners();
+        initShortcuts();
+    }
+
+    private void initDefaults() {
         popupMenu = new TreePopupMenu();
         xmlListModel = new DefaultListModel();
         xmlList.setModel(xmlListModel);
@@ -86,7 +98,6 @@ public class XmlUI extends javax.swing.JFrame {
         listTreeSplitpane.setDividerLocation(0.3);
         treeTableSplitPane.setDividerLocation(0.7);
         setLocationRelativeTo(null);
-        initListeners();
     }
 
     private void initListeners() {
@@ -95,6 +106,7 @@ public class XmlUI extends javax.swing.JFrame {
         DefaultFormatter formatter = (DefaultFormatter) field.getFormatter();
         formatter.setCommitsOnValidEdit(true);
 
+        Utils.disableDoubleClickEdit(xmlTree);
         xmlTree.getCellEditor().addCellEditorListener(new CellEditorListener() {
 
             @Override
@@ -119,41 +131,7 @@ public class XmlUI extends javax.swing.JFrame {
             }
         });
 
-        int shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMask();
-        xmlTree.getInputMap(JComponent.WHEN_FOCUSED).put(
-                KeyStroke.getKeyStroke(KeyEvent.VK_N, shortcut), "AddNew");
-        xmlTree.getActionMap().put("AddNew", new AbstractAction() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                addNodeActionPerformed(null);
-            }
-        });
-        xmlTree.getInputMap(JComponent.WHEN_FOCUSED).put(
-                KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), "Delete");
-        xmlTree.getActionMap().put("Delete", new AbstractAction() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                deleteNodeActionPerformed(null);
-            }
-        });
-
-        xmlList.getInputMap(JComponent.WHEN_FOCUSED).put(
-                KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), "Delete");
-        xmlList.getActionMap().put("Delete", new AbstractAction() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (xmlList.getSelectedIndices().length > 0) {
-                    int[] indices = xmlList.getSelectedIndices();
-                    Arrays.sort(indices);
-                    for (int i = indices.length - 1; i >= 0; i--) {
-                        xmlListModel.remove(indices[i]);
-                    }
-                }
-            }
-        });
+        xmlTree.setCellRenderer(new XmlTreeRenderer());
 
         xmlList.setTransferHandler(new TransferHandler() {
 
@@ -229,6 +207,58 @@ public class XmlUI extends javax.swing.JFrame {
 
     }
 
+    private void initShortcuts() {
+
+        int shortcut = Toolkit.getDefaultToolkit().getMenuShortcutKeyMask();
+        //For List
+        xmlList.getInputMap(JComponent.WHEN_FOCUSED).put(
+                KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), "Delete");
+        xmlList.getActionMap().put("Delete", new AbstractAction() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (xmlList.getSelectedIndices().length > 0) {
+                    int[] indices = xmlList.getSelectedIndices();
+                    Arrays.sort(indices);
+                    for (int i = indices.length - 1; i >= 0; i--) {
+                        xmlListModel.remove(indices[i]);
+                    }
+                }
+            }
+        });
+        //For Tree
+        xmlTree.getInputMap(JComponent.WHEN_FOCUSED).put(
+                KeyStroke.getKeyStroke(KeyEvent.VK_N, shortcut), "AddNew");
+        xmlTree.getActionMap().put("AddNew", new AbstractAction() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                addNodeActionPerformed(null);
+            }
+        });
+        xmlTree.getInputMap(JComponent.WHEN_FOCUSED).put(
+                KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), "Delete");
+        xmlTree.getActionMap().put("Delete", new AbstractAction() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                deleteNodeActionPerformed(null);
+            }
+        });
+
+        xmlTree.getInputMap(JComponent.WHEN_FOCUSED).put(
+                KeyStroke.getKeyStroke(KeyEvent.VK_T, shortcut), "ToggleComment");
+        xmlTree.getActionMap().put("ToggleComment", new AbstractAction() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                toggleComment();
+            }
+        });
+        //For Table
+        TableUtils.installCCP(mockTable);
+    }
+
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -239,6 +269,17 @@ public class XmlUI extends javax.swing.JFrame {
     private void initComponents() {
 
         xmlFileChooser = new javax.swing.JFileChooser();
+        xsdFileChooser = new javax.swing.JFileChooser();
+        mockDetails = new javax.swing.JDialog();
+        mockDataName = new javax.swing.JTextField();
+        validateAganistSchema = new javax.swing.JCheckBox();
+        createMockXmls = new javax.swing.JButton();
+        loadXsd = new javax.swing.JButton();
+        xsdLocation = new javax.swing.JTextField();
+        jLabel1 = new javax.swing.JLabel();
+        mockXMLSaveLocation = new javax.swing.JTextField();
+        saveMockXmlTo = new javax.swing.JButton();
+        jLabel2 = new javax.swing.JLabel();
         listTreeSplitpane = new javax.swing.JSplitPane();
         treeTableSplitPane = new javax.swing.JSplitPane();
         treeMockPane = new javax.swing.JSplitPane();
@@ -259,8 +300,12 @@ public class XmlUI extends javax.swing.JFrame {
         jScrollPane1 = new javax.swing.JScrollPane();
         mockTable = new javax.swing.JTable();
         jToolBar1 = new javax.swing.JToolBar();
+        clearMocks = new javax.swing.JButton();
         filler5 = new javax.swing.Box.Filler(new java.awt.Dimension(20, 0), new java.awt.Dimension(20, 0), new java.awt.Dimension(20, 32767));
         mockNum = new javax.swing.JSpinner();
+        nodeTextOnly = new javax.swing.JCheckBox();
+        mockLeafOnly = new javax.swing.JCheckBox();
+        filler6 = new javax.swing.Box.Filler(new java.awt.Dimension(10, 0), new java.awt.Dimension(10, 0), new java.awt.Dimension(10, 32767));
         jPanel2 = new javax.swing.JPanel();
         mockStart = new javax.swing.JButton();
         filler4 = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(32767, 32767));
@@ -299,8 +344,104 @@ public class XmlUI extends javax.swing.JFrame {
         xmlFileChooser.setFileFilter(new FileNameExtensionFilter("Xml Files","xml"));
         xmlFileChooser.setFileSelectionMode(javax.swing.JFileChooser.FILES_AND_DIRECTORIES);
 
+        xsdFileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
+        xsdFileChooser.setDialogTitle("Select Xsd");
+        xsdFileChooser.setFileFilter(new FileNameExtensionFilter("Xsd Files","xsd"));
+
+        mockDetails.setTitle("Mock Creation Details");
+        mockDetails.setModalityType(java.awt.Dialog.ModalityType.APPLICATION_MODAL);
+
+        mockDataName.setText("Mock_{index}_data");
+        mockDataName.setToolTipText("<html>Use <b>{index}</b> to specify index.For ex                 <br/>                 <b>dupMock_{index}</b> will generate <b>dupMock_1.xml</b>                 <br/>                 <b>Mock_{index}_data</b> will generate <b>Mock_1_data.xml</b>                 </html>");
+
+        validateAganistSchema.setText("Validate against the following Schema");
+
+        createMockXmls.setText("Create Mock Xmls");
+        createMockXmls.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                createMockXmlsActionPerformed(evt);
+            }
+        });
+
+        loadXsd.setText("...");
+        loadXsd.setToolTipText("Load Xsd");
+        loadXsd.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                loadXsdActionPerformed(evt);
+            }
+        });
+
+        jLabel1.setText("Mock Data Name");
+
+        mockXMLSaveLocation.setText(new File(System.getProperty("user.dir")).getAbsolutePath());
+
+        saveMockXmlTo.setText("...");
+        saveMockXmlTo.setToolTipText("Select Mock Xml Location");
+        saveMockXmlTo.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                saveMockXmlToActionPerformed(evt);
+            }
+        });
+
+        jLabel2.setText("Save Mock XML's to");
+
+        javax.swing.GroupLayout mockDetailsLayout = new javax.swing.GroupLayout(mockDetails.getContentPane());
+        mockDetails.getContentPane().setLayout(mockDetailsLayout);
+        mockDetailsLayout.setHorizontalGroup(
+            mockDetailsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(mockDetailsLayout.createSequentialGroup()
+                .addGroup(mockDetailsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(mockDetailsLayout.createSequentialGroup()
+                        .addGap(29, 29, 29)
+                        .addGroup(mockDetailsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel2)
+                            .addComponent(jLabel1)
+                            .addComponent(validateAganistSchema)
+                            .addGroup(mockDetailsLayout.createSequentialGroup()
+                                .addGroup(mockDetailsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                                    .addComponent(mockXMLSaveLocation, javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(mockDataName, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 243, Short.MAX_VALUE)
+                                    .addComponent(xsdLocation, javax.swing.GroupLayout.Alignment.LEADING))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(mockDetailsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(loadXsd)
+                                    .addComponent(saveMockXmlTo)))))
+                    .addGroup(mockDetailsLayout.createSequentialGroup()
+                        .addGap(114, 114, 114)
+                        .addComponent(createMockXmls)))
+                .addGap(0, 13, Short.MAX_VALUE))
+        );
+        mockDetailsLayout.setVerticalGroup(
+            mockDetailsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(mockDetailsLayout.createSequentialGroup()
+                .addGap(22, 22, 22)
+                .addComponent(jLabel1)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(mockDataName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addComponent(validateAganistSchema)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(mockDetailsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(xsdLocation, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(loadXsd))
+                .addGap(18, 18, 18)
+                .addComponent(jLabel2)
+                .addGap(7, 7, 7)
+                .addGroup(mockDetailsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(mockXMLSaveLocation, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(saveMockXmlTo))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 23, Short.MAX_VALUE)
+                .addComponent(createMockXmls)
+                .addGap(23, 23, 23))
+        );
+
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Simple Xml Viewer");
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            public void windowClosing(java.awt.event.WindowEvent evt) {
+                formWindowClosing(evt);
+            }
+        });
 
         listTreeSplitpane.setResizeWeight(0.3);
         listTreeSplitpane.setOneTouchExpandable(true);
@@ -416,6 +557,17 @@ public class XmlUI extends javax.swing.JFrame {
         jToolBar1.setBorder(javax.swing.BorderFactory.createEtchedBorder());
         jToolBar1.setFloatable(false);
         jToolBar1.setRollover(true);
+
+        clearMocks.setText("Clear");
+        clearMocks.setFocusable(false);
+        clearMocks.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        clearMocks.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        clearMocks.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                clearMocksActionPerformed(evt);
+            }
+        });
+        jToolBar1.add(clearMocks);
         jToolBar1.add(filler5);
 
         mockNum.setModel(new javax.swing.SpinnerNumberModel(Integer.valueOf(1), Integer.valueOf(1), null, Integer.valueOf(1)));
@@ -423,6 +575,21 @@ public class XmlUI extends javax.swing.JFrame {
         mockNum.setMinimumSize(new java.awt.Dimension(50, 30));
         mockNum.setPreferredSize(new java.awt.Dimension(50, 30));
         jToolBar1.add(mockNum);
+
+        nodeTextOnly.setSelected(true);
+        nodeTextOnly.setText("Mock Node Text Only");
+        nodeTextOnly.setFocusable(false);
+        nodeTextOnly.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+        nodeTextOnly.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        jToolBar1.add(nodeTextOnly);
+
+        mockLeafOnly.setSelected(true);
+        mockLeafOnly.setText("Mock Leaf Nodes Only");
+        mockLeafOnly.setFocusable(false);
+        mockLeafOnly.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+        mockLeafOnly.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        jToolBar1.add(mockLeafOnly);
+        jToolBar1.add(filler6);
 
         jPanel2.setLayout(new java.awt.BorderLayout());
 
@@ -785,28 +952,73 @@ public class XmlUI extends javax.swing.JFrame {
     }//GEN-LAST:event_mockStartActionPerformed
 
     private void createMocksActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_createMocksActionPerformed
-        if (mockTable.getModel() instanceof XmlTableModel
-                && ((XmlTableModel) mockTable.getModel()).save()) {
+        showMockDialog();
+    }//GEN-LAST:event_createMocksActionPerformed
+
+    private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
+        List<File> files = new ArrayList<>();
+        for (int i = 0; i < xmlListModel.size(); i++) {
+            SimpleXmlModel xmlModel = (SimpleXmlModel) xmlListModel.get(i);
+            files.add(xmlModel.getFile());
+        }
+        RecentItems.storeRecentItems(files);
+    }//GEN-LAST:event_formWindowClosing
+
+    private void clearMocksActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_clearMocksActionPerformed
+        mockTable.setModel(new DefaultTableModel());
+    }//GEN-LAST:event_clearMocksActionPerformed
+
+    private void loadXsdActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_loadXsdActionPerformed
+        int val = xsdFileChooser.showOpenDialog(this);
+        if (val == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = xsdFileChooser.getSelectedFile();
+            xsdLocation.setText(selectedFile.getAbsolutePath());
+        }
+    }//GEN-LAST:event_loadXsdActionPerformed
+
+    private void createMockXmlsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_createMockXmlsActionPerformed
+        XmlTableModel xmlTabModel = (XmlTableModel) mockTable.getModel();
+        File xsdFile = validateAganistSchema.isSelected() ? new File(xsdLocation.getText()) : null;
+        if (xmlTabModel.save(
+                mockDataName.getText(),
+                new File(mockXMLSaveLocation.getText()),
+                xsdFile)) {
             System.out.println("Saved");
             JOptionPane.showMessageDialog(this, "Mocked Files are created successfully");
         } else {
             JOptionPane.showMessageDialog(this, "Couldn't Save");
         }
-    }//GEN-LAST:event_createMocksActionPerformed
+        mockDetails.setVisible(false);
+    }//GEN-LAST:event_createMockXmlsActionPerformed
+
+    private void saveMockXmlToActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveMockXmlToActionPerformed
+        File file = Utils.getFileChooser();
+        if (file != null) {
+            mockXMLSaveLocation.setText(file.getAbsolutePath());
+        }
+    }//GEN-LAST:event_saveMockXmlToActionPerformed
+
+    private void showMockDialog() {
+        mockDetails.pack();
+        mockDetails.setLocationRelativeTo(null);
+        mockDetails.setVisible(true);
+    }
 
     private void checkAndAddFiles(File[] files) {
-        for (File file : files) {
-            if (file.isDirectory()) {
-                File[] xmlFiles = file.listFiles(XML_FILE_FILTER);
-                if (xmlFiles != null) {
-                    for (File xmlFile : xmlFiles) {
-                        checkAndAdd(xmlFile);
+        if (files != null) {
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    File[] xmlFiles = file.listFiles(XML_FILE_FILTER);
+                    if (xmlFiles != null) {
+                        for (File xmlFile : xmlFiles) {
+                            checkAndAdd(xmlFile);
+                        }
+                        xmlList.setSelectedIndex(xmlListModel.getSize() - 1);
                     }
+                } else if (file.getName().endsWith(".xml")) {
+                    checkAndAdd(file);
                     xmlList.setSelectedIndex(xmlListModel.getSize() - 1);
                 }
-            } else if (file.getName().endsWith(".xml")) {
-                checkAndAdd(file);
-                xmlList.setSelectedIndex(xmlListModel.getSize() - 1);
             }
         }
     }
@@ -904,6 +1116,33 @@ public class XmlUI extends javax.swing.JFrame {
                     node.modifyValueByAction(onValueChangeOnAction);
                 }
             }
+        }
+    }
+
+    private void duplicateNode() {
+        XmlTreeNode node = getSelectedNode();
+        if (!node.isRoot()) {
+            XmlTreeNode duplicate = duplicateNode(node);
+            DefaultTreeModel model = (DefaultTreeModel) xmlTree.getModel();
+            model.insertNodeInto(duplicate, (XmlTreeNode) node.getParent(), node.getParent().getChildCount());
+        }
+    }
+
+    private XmlTreeNode duplicateNode(XmlTreeNode node) {
+        XmlTreeNode duplicate = (XmlTreeNode) node.clone();
+        for (int i = 0; i < node.getChildCount(); i++) {
+            duplicate.add(duplicateNode((XmlTreeNode) node.getChildAt(i)));
+        }
+        return duplicate;
+    }
+
+    private void toggleComment() {
+        XmlTreeNode[] nodes = getSelectedNodes();
+        if (nodes != null) {
+            for (XmlTreeNode node : nodes) {
+                node.setCommented(!node.isCommented());
+            }
+            xmlTree.repaint();
         }
     }
 
@@ -1044,14 +1283,26 @@ public class XmlUI extends javax.swing.JFrame {
     }
 
     private void initMocks() {
-        TreePath[] paths = xmlTree.getSelectionPaths();
-        if (paths != null && paths.length > 0) {
-            List<XmlTreeNode> nodes = new ArrayList<>();
-            for (TreePath path : paths) {
-                nodes.add((XmlTreeNode) path.getLastPathComponent());
+        XmlTreeNode[] nodes = getSelectedNodes();
+        if (nodes != null) {
+            Set<XmlTreeNode> nodeSet = new LinkedHashSet<>();
+            for (XmlTreeNode node : nodes) {
+                nodeSet.add(node);
+                if (!node.isLeaf()) {
+                    nodeSet.addAll(Collections.list(node.children()));
+                    if (mockLeafOnly.isSelected()) {
+                        nodeSet.remove(node);
+                    }
+                }
             }
-            mockTable.setModel(new XmlTableModel(Integer.valueOf(mockNum.getValue().toString()), nodes));
+            mockTable.setModel(new XmlTableModel(
+                    Integer.valueOf(mockNum.getValue().toString()),
+                    new ArrayList<>(nodeSet),
+                    nodeTextOnly.isSelected()));
             Utils.resizeTable(mockTable);
+            if (nodeTextOnly.isSelected()) {
+                mockTable.setRowHeight(20);
+            }
         }
     }
 
@@ -1072,23 +1323,20 @@ public class XmlUI extends javax.swing.JFrame {
                     break;
                 }
             }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(XmlUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(XmlUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(XmlUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | javax.swing.UnsupportedLookAndFeelException ex) {
             java.util.logging.Logger.getLogger(XmlUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
         //</editor-fold>
 
+        //</editor-fold>
+
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
+            @Override
             public void run() {
                 XmlUI xml = new XmlUI();
                 xml.setVisible(true);
-                xml.loadXmlActionPerformed(null);
+                xml.checkAndAddFiles(RecentItems.getRecentItems());
             }
         });
     }
@@ -1097,7 +1345,9 @@ public class XmlUI extends javax.swing.JFrame {
     private javax.swing.JButton addNode;
     private javax.swing.JMenuItem addNodeMenuItem;
     private javax.swing.JCheckBoxMenuItem applyChangesMenuItem;
+    private javax.swing.JButton clearMocks;
     private javax.swing.JMenuItem collapseNodes;
+    private javax.swing.JButton createMockXmls;
     private javax.swing.JButton createMocks;
     private javax.swing.JButton deleteNode;
     private javax.swing.JMenuItem deleteNodesMenuItem;
@@ -1107,6 +1357,9 @@ public class XmlUI extends javax.swing.JFrame {
     private javax.swing.Box.Filler filler3;
     private javax.swing.Box.Filler filler4;
     private javax.swing.Box.Filler filler5;
+    private javax.swing.Box.Filler filler6;
+    private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel2;
     private javax.swing.JMenu jMenu1;
     private javax.swing.JMenu jMenu2;
     private javax.swing.JMenuBar jMenuBar1;
@@ -1122,18 +1375,25 @@ public class XmlUI extends javax.swing.JFrame {
     private javax.swing.JSplitPane listTreeSplitpane;
     private javax.swing.JMenuItem loadMenuItem;
     private javax.swing.JButton loadXml;
+    private javax.swing.JButton loadXsd;
+    private javax.swing.JTextField mockDataName;
     private javax.swing.JToggleButton mockDataToggle;
+    private javax.swing.JDialog mockDetails;
+    private javax.swing.JCheckBox mockLeafOnly;
     private javax.swing.JSpinner mockNum;
     private javax.swing.JPanel mockPanel;
     private javax.swing.JButton mockStart;
     private javax.swing.JTable mockTable;
+    private javax.swing.JTextField mockXMLSaveLocation;
     private javax.swing.JButton nextSearch;
+    private javax.swing.JCheckBox nodeTextOnly;
     private javax.swing.JButton previousSearch;
     private javax.swing.JMenuItem quitMenuItem;
     private javax.swing.JMenuItem reloadMenuItem;
     private javax.swing.JButton renameNode;
     private javax.swing.JMenuItem renameNodeMenuItem;
     private javax.swing.JMenuItem saveMenuItem;
+    private javax.swing.JButton saveMockXmlTo;
     private javax.swing.JButton saveXml;
     private javax.swing.JToolBar searchBar;
     private javax.swing.JLabel searchCount;
@@ -1145,10 +1405,13 @@ public class XmlUI extends javax.swing.JFrame {
     private javax.swing.JPanel treePanel;
     private javax.swing.JScrollPane treeScrollPane;
     private javax.swing.JSplitPane treeTableSplitPane;
+    private javax.swing.JCheckBox validateAganistSchema;
     private javax.swing.JFileChooser xmlFileChooser;
     private javax.swing.JList xmlList;
     private javax.swing.JTable xmlPropTable;
     private javax.swing.JTree xmlTree;
+    private javax.swing.JFileChooser xsdFileChooser;
+    private javax.swing.JTextField xsdLocation;
     // End of variables declaration//GEN-END:variables
 
     class TreePopupMenu extends JPopupMenu implements ActionListener {
@@ -1158,6 +1421,9 @@ public class XmlUI extends javax.swing.JFrame {
             create("Add Node", KeyStroke.getKeyStroke(KeyEvent.VK_N, shortcut));
             create("Rename Node", KeyStroke.getKeyStroke(KeyEvent.VK_F2, shortcut));
             create("Delete Nodes", KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0));
+            addSeparator();
+            create("Duplicate Node", KeyStroke.getKeyStroke(KeyEvent.VK_D, shortcut));
+            create("Toggle Comment", KeyStroke.getKeyStroke(KeyEvent.VK_T, shortcut));
             addSeparator();
             create("Expand All", null);
             create("Collapse All", null);
@@ -1181,6 +1447,12 @@ public class XmlUI extends javax.swing.JFrame {
                     break;
                 case "Delete Nodes":
                     deleteNodeActionPerformed(null);
+                    break;
+                case "Duplicate Node":
+                    duplicateNode();
+                    break;
+                case "Toggle Comment":
+                    toggleComment();
                     break;
                 case "Expand All":
                     Utils.expandTree(xmlTree, true);
@@ -1266,6 +1538,22 @@ public class XmlUI extends javax.swing.JFrame {
                 return true;
             }
             return false;
+        }
+
+    }
+
+    class XmlTreeRenderer extends DefaultTreeCellRenderer {
+
+        @Override
+        public Component getTreeCellRendererComponent(JTree tree, Object value, boolean sel, boolean expanded, boolean leaf, int row, boolean hasFocus) {
+            Component comp = super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus);
+            if (value instanceof XmlTreeNode) {
+                XmlTreeNode node = (XmlTreeNode) value;
+                if (node.isCommented()) {
+                    comp.setForeground(Color.RED);
+                }
+            }
+            return comp;
         }
 
     }

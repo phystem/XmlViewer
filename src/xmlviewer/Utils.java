@@ -6,11 +6,15 @@
 package xmlviewer;
 
 import java.awt.Component;
+import java.awt.event.MouseEvent;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.Enumeration;
+import java.util.EventObject;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFileChooser;
@@ -19,18 +23,27 @@ import javax.swing.JTree;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeCellEditor;
+import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import javax.xml.validation.Validator;
+import org.w3c.dom.Comment;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -70,14 +83,35 @@ public class Utils {
         NodeList nList = rootElement.getChildNodes();
         for (int temp = 0; temp < nList.getLength(); temp++) {
             Node node = nList.item(temp);
+            Element nodeElement = null;
+            Boolean isCommented = rootNode.isCommented();
             if (node.getNodeType() == Node.ELEMENT_NODE) {
-                XmlTreeNode child = new XmlTreeNode((Element) node);
+                nodeElement = (Element) node;
+            } else if (node.getNodeType() == Node.COMMENT_NODE) {
+                nodeElement = parseXmlFromComment(((Comment) node).getData());
+                isCommented = true;
+            }
+            if (nodeElement != null) {
+                XmlTreeNode child = new XmlTreeNode(nodeElement);
+                child.setCommented(isCommented);
                 rootNode.add(child);
-                if (node.hasChildNodes()) {
-                    loadAllChildNodes(child, (Element) node);
+                if (nodeElement.hasChildNodes()) {
+                    loadAllChildNodes(child, nodeElement);
                 }
             }
         }
+    }
+
+    private static Element parseXmlFromComment(String comment) {
+        try {
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            DocumentBuilder db = dbf.newDocumentBuilder();
+            Document doc = db.parse(new ByteArrayInputStream(comment.getBytes("UTF-8")));
+            return doc.getDocumentElement();
+        } catch (ParserConfigurationException | SAXException | IOException ex) {
+            Logger.getLogger(Utils.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return null;
     }
 
     public static Document loadXml(File xmlPath) {
@@ -102,14 +136,15 @@ public class Utils {
         return null;
     }
 
-    public static void saveFromTreeModel(DefaultTreeModel model, File xmlPath) {
+    public static Document saveFromTreeModel(DefaultTreeModel model, File xmlPath) {
         Document doc = getNew();
         XmlTreeNode rootNode = (XmlTreeNode) model.getRoot();
         doc.appendChild(createElement(rootNode, doc));
         saveXml(doc, xmlPath);
+        return doc;
     }
 
-    private static Element createElement(XmlTreeNode node, Document doc) {
+    private static Node createElement(XmlTreeNode node, Document doc) {
         Element element = doc.createElement(node.getName());
         for (String[] attr : node.getAttributes()) {
             element.setAttribute(attr[0], attr[1]);
@@ -121,7 +156,27 @@ public class Utils {
             XmlTreeNode xNode = (XmlTreeNode) node.getChildAt(i);
             element.appendChild(createElement(xNode, doc));
         }
+        if (node.getParent() != null && !((XmlTreeNode) node.getParent()).isCommented()
+                && node.isCommented()) {
+            return elementToComment(element, doc);
+        }
         return element;
+    }
+
+    private static Node elementToComment(Element element, Document doc) {
+        String comment = "";
+        try {
+            TransformerFactory transFactory = TransformerFactory.newInstance();
+            Transformer transformer = transFactory.newTransformer();
+            StringWriter buffer = new StringWriter();
+            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+            transformer.transform(new DOMSource(element),
+                    new StreamResult(buffer));
+            comment = buffer.toString();
+        } catch (TransformerException ex) {
+            Logger.getLogger(Utils.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return doc.createComment(comment);
     }
 
     public static void saveXml(Document doc, File xmlPath) {
@@ -146,6 +201,20 @@ public class Utils {
                 Logger.getLogger(Utils.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
+    }
+
+    public static Boolean validate(Document document, File xsd) {
+        try {
+            SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+            Source schemaFile = new StreamSource(xsd);
+            Schema schema = factory.newSchema(schemaFile);
+            Validator validator = schema.newValidator();
+            validator.validate(new DOMSource(document));
+            return true;
+        } catch (SAXException | IOException ex) {
+            Logger.getLogger(Utils.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return false;
     }
 
     public static void expandTree(JTree tree, boolean expand) {
@@ -206,6 +275,19 @@ public class Utils {
             return xmlFileChooser.getSelectedFile();
         }
         return null;
+    }
+
+    public static void disableDoubleClickEdit(JTree tree) {
+        DefaultTreeCellEditor editor = new DefaultTreeCellEditor(tree, (DefaultTreeCellRenderer) tree.getCellRenderer()) {
+            @Override
+            public boolean isCellEditable(EventObject event) {
+                if (event instanceof MouseEvent) {
+                    return false;
+                }
+                return super.isCellEditable(event);
+            }
+        };
+        tree.setCellEditor(editor);
     }
 
 }

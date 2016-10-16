@@ -50,6 +50,10 @@ class SimpleXmlModel {
         return Objects.equals(this.file.getAbsolutePath(), other.file.getAbsolutePath());
     }
 
+    public File getFile() {
+        return file;
+    }
+
     @Override
     public String toString() {
         return file.getName().substring(0, file.getName().lastIndexOf(".xml"));

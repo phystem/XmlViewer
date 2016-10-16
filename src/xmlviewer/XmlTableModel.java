@@ -11,6 +11,7 @@ import java.util.List;
 import javax.swing.JOptionPane;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.tree.DefaultTreeModel;
+import org.w3c.dom.Document;
 
 /**
  *
@@ -23,7 +24,10 @@ public class XmlTableModel extends AbstractTableModel {
 
     List<List<XmlTreeNode>> duplicates = new ArrayList<>();
 
-    public XmlTableModel(int rows, List<XmlTreeNode> nodes) {
+    final Boolean nodeTextAlone;
+
+    public XmlTableModel(int rows, List<XmlTreeNode> nodes, Boolean nodeTextAlone) {
+        this.nodeTextAlone = nodeTextAlone;
         this.rows = rows;
         this.nodes = nodes;
         duplicate();
@@ -41,7 +45,7 @@ public class XmlTableModel extends AbstractTableModel {
 
     @Override
     public Class<?> getColumnClass(int columnIndex) {
-        if (columnIndex == 0) {
+        if (nodeTextAlone || columnIndex == 0) {
             return String.class;
         }
         return XmlTreeNode.class;
@@ -85,41 +89,50 @@ public class XmlTableModel extends AbstractTableModel {
         if (columnIndex == 0) {
             return rowIndex + 1;
         }
-        return duplicates.get(rowIndex).get(columnIndex - 1);
+        XmlTreeNode node = duplicates.get(rowIndex).get(columnIndex - 1);
+        if (nodeTextAlone) {
+            return node.getText();
+        }
+        return node;
     }
 
-    public Boolean save() {
-        String mockName = JOptionPane.showInputDialog(null,
-                "<html>Use <b>{index}</b> to specify index."
-                + "<br/>"
-                + "For ex"
-                + "<br/>"
-                + "<b>dupMock_{index}</b> will generate <b>dupMock_1.xml</b>"
-                + "<br/>"
-                + "<b>Mock_{index}_data</b> will generate <b>Mock_1_data.xml</b>"
-                + "</html>",
-                "Enter the Mock Name Format",
-                JOptionPane.OK_OPTION);
-        if (mockName != null && !mockName.isEmpty()) {
+    @Override
+    public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
+        if (nodeTextAlone) {
+            XmlTreeNode node = duplicates.get(rowIndex).get(columnIndex - 1);
+            node.setText(aValue.toString());
+        } else {
+            super.setValueAt(aValue, rowIndex, columnIndex);
+        }
+    }
 
+    public Boolean save(String mockName, File location, File validateAgainstSchema) {
+        if (mockName != null && !mockName.isEmpty()) {
+            List<Integer> invalid = new ArrayList<>();
             if (!mockName.contains("{index}")) {
                 mockName = mockName + "{index}";
             }
-
-            File location = Utils.getFileChooser();
             if (location != null) {
                 List<XmlTreeNode> realNodes = new ArrayList<>();
                 for (XmlTreeNode node : nodes) {
                     realNodes.add((XmlTreeNode) node.clone());
                 }
-
                 for (int dup = 0; dup < duplicates.size(); dup++) {
                     List<XmlTreeNode> duplicate = duplicates.get(dup);
                     replaceReal(duplicate);
-                    Utils.saveFromTreeModel(new DefaultTreeModel(nodes.get(0).getRoot()),
-                            new File(location, mockName.replace("{index}", dup + 1 + "") + ".xml"));
+                    Document doc
+                            = Utils.saveFromTreeModel(new DefaultTreeModel(nodes.get(0).getRoot()),
+                                    new File(location, mockName.replace("{index}", dup + 1 + "") + ".xml"));
+                    if (validateAgainstSchema != null) {
+                        if (!Utils.validate(doc, validateAgainstSchema)) {
+                            invalid.add(dup + 1);
+                        }
+                    }
                 }
                 replaceReal(realNodes);
+                if (!invalid.isEmpty()) {
+                    JOptionPane.showMessageDialog(null, "The following mock data are invalid against the given schema - " + invalid);
+                }
                 return true;
             }
         }
@@ -136,6 +149,10 @@ public class XmlTableModel extends AbstractTableModel {
                 }
             }
         }
+    }
+
+    private void validateAgainst(File xsd) {
+
     }
 
 }

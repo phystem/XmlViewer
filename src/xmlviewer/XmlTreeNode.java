@@ -28,6 +28,8 @@ public class XmlTreeNode extends DefaultMutableTreeNode implements TableModel {
 
     private Action onValueChangeAction;
 
+    private Boolean commented = false;
+
     public XmlTreeNode(Element element) {
         this.name = element.getNodeName();
         this.text = getFirstLevelTextContent(element);
@@ -123,8 +125,7 @@ public class XmlTreeNode extends DefaultMutableTreeNode implements TableModel {
             } else {
                 switch (rowIndex) {
                     case 0:
-                        text = aValue.toString();
-                        notifyChange("NodeText", "", text);
+                        setText(aValue.toString());
                         break;
                     case 1:
                         break;
@@ -202,9 +203,27 @@ public class XmlTreeNode extends DefaultMutableTreeNode implements TableModel {
         return text;
     }
 
+    public void setText(String text) {
+        this.text = text;
+        notifyChange("NodeText", "", text);
+    }
+
     @Override
     public String toString() {
         return name + " [" + getElementIndex(this) + "]";
+    }
+
+    public Boolean isCommented() {
+        return commented;
+    }
+
+    public void setCommented(Boolean commented) {
+        this.commented = commented;
+        if (getChildCount() > 0) {
+            for (int i = 0; i < getChildCount(); i++) {
+                ((XmlTreeNode) getChildAt(i)).setCommented(commented);
+            }
+        }
     }
 
     private static String getElementXpath(XmlTreeNode elt) {
