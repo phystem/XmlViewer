@@ -210,7 +210,11 @@ public class XmlTreeNode extends DefaultMutableTreeNode implements TableModel {
 
     @Override
     public String toString() {
-        return name + " [" + getElementIndex(this) + "]";
+        String val = name + " [" + getElementIndex(this) + "]";
+        if (isLeaf()) {
+            val += " [" + text + "]";
+        }
+        return val;
     }
 
     public Boolean isCommented() {

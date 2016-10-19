@@ -96,6 +96,13 @@ public class XmlTableModel extends AbstractTableModel {
         return node;
     }
 
+    public XmlTreeNode getNodeValueAt(int rowIndex, int columnIndex) {
+        if (columnIndex == 0) {
+            return null;
+        }
+        return duplicates.get(rowIndex).get(columnIndex - 1);
+    }
+
     @Override
     public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
         if (nodeTextAlone) {

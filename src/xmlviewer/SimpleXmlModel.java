@@ -18,6 +18,8 @@ class SimpleXmlModel {
     private final File file;
     DefaultTreeModel treeModel;
 
+    XsdData xsdData;
+
     public SimpleXmlModel(File file) {
         this.file = file;
         treeModel = Utils.getTreeModel(file);
@@ -54,9 +56,19 @@ class SimpleXmlModel {
         return file;
     }
 
+    public XsdData getXsdData() {
+        return xsdData;
+    }
+
     @Override
     public String toString() {
         return file.getName().substring(0, file.getName().lastIndexOf(".xml"));
+    }
+
+    public void loadXsd(File xsdFile) {
+        if (xsdFile != null) {
+            xsdData = new XsdData(xsdFile);
+        }
     }
 
 }

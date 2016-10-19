@@ -9,6 +9,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Frame;
 import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
@@ -33,7 +34,9 @@ import javax.swing.AbstractCellEditor;
 import javax.swing.Action;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
+import javax.swing.DefaultCellEditor;
 import javax.swing.DefaultListModel;
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFormattedTextField;
@@ -274,7 +277,6 @@ public class XmlUI extends javax.swing.JFrame {
         mockDataName = new javax.swing.JTextField();
         validateAganistSchema = new javax.swing.JCheckBox();
         createMockXmls = new javax.swing.JButton();
-        loadXsd = new javax.swing.JButton();
         xsdLocation = new javax.swing.JTextField();
         jLabel1 = new javax.swing.JLabel();
         mockXMLSaveLocation = new javax.swing.JTextField();
@@ -303,14 +305,17 @@ public class XmlUI extends javax.swing.JFrame {
         clearMocks = new javax.swing.JButton();
         filler5 = new javax.swing.Box.Filler(new java.awt.Dimension(20, 0), new java.awt.Dimension(20, 0), new java.awt.Dimension(20, 32767));
         mockNum = new javax.swing.JSpinner();
-        nodeTextOnly = new javax.swing.JCheckBox();
-        mockLeafOnly = new javax.swing.JCheckBox();
         filler6 = new javax.swing.Box.Filler(new java.awt.Dimension(10, 0), new java.awt.Dimension(10, 0), new java.awt.Dimension(10, 32767));
         jPanel2 = new javax.swing.JPanel();
         mockStart = new javax.swing.JButton();
         filler4 = new javax.swing.Box.Filler(new java.awt.Dimension(0, 0), new java.awt.Dimension(0, 0), new java.awt.Dimension(32767, 32767));
         jPanel1 = new javax.swing.JPanel();
         createMocks = new javax.swing.JButton();
+        jPanel3 = new javax.swing.JPanel();
+        xsdFileName = new javax.swing.JTextField();
+        loadXsdFromFile = new javax.swing.JButton();
+        nodeTextOnly = new javax.swing.JCheckBox();
+        mockLeafOnly = new javax.swing.JCheckBox();
         listScrollPane = new javax.swing.JScrollPane();
         xmlList = new javax.swing.JList();
         toolBar = new javax.swing.JToolBar();
@@ -363,13 +368,7 @@ public class XmlUI extends javax.swing.JFrame {
             }
         });
 
-        loadXsd.setText("...");
-        loadXsd.setToolTipText("Load Xsd");
-        loadXsd.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                loadXsdActionPerformed(evt);
-            }
-        });
+        xsdLocation.setEditable(false);
 
         jLabel1.setText("Mock Data Name");
 
@@ -403,9 +402,7 @@ public class XmlUI extends javax.swing.JFrame {
                                     .addComponent(mockDataName, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 243, Short.MAX_VALUE)
                                     .addComponent(xsdLocation, javax.swing.GroupLayout.Alignment.LEADING))
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addGroup(mockDetailsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addComponent(loadXsd)
-                                    .addComponent(saveMockXmlTo)))))
+                                .addComponent(saveMockXmlTo))))
                     .addGroup(mockDetailsLayout.createSequentialGroup()
                         .addGap(114, 114, 114)
                         .addComponent(createMockXmls)))
@@ -421,16 +418,14 @@ public class XmlUI extends javax.swing.JFrame {
                 .addGap(18, 18, 18)
                 .addComponent(validateAganistSchema)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addGroup(mockDetailsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(xsdLocation, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(loadXsd))
+                .addComponent(xsdLocation, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
                 .addComponent(jLabel2)
                 .addGap(7, 7, 7)
                 .addGroup(mockDetailsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(mockXMLSaveLocation, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(saveMockXmlTo))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 23, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 26, Short.MAX_VALUE)
                 .addComponent(createMockXmls)
                 .addGap(23, 23, 23))
         );
@@ -575,20 +570,6 @@ public class XmlUI extends javax.swing.JFrame {
         mockNum.setMinimumSize(new java.awt.Dimension(50, 30));
         mockNum.setPreferredSize(new java.awt.Dimension(50, 30));
         jToolBar1.add(mockNum);
-
-        nodeTextOnly.setSelected(true);
-        nodeTextOnly.setText("Mock Node Text Only");
-        nodeTextOnly.setFocusable(false);
-        nodeTextOnly.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
-        nodeTextOnly.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-        jToolBar1.add(nodeTextOnly);
-
-        mockLeafOnly.setSelected(true);
-        mockLeafOnly.setText("Mock Leaf Nodes Only");
-        mockLeafOnly.setFocusable(false);
-        mockLeafOnly.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
-        mockLeafOnly.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
-        jToolBar1.add(mockLeafOnly);
         jToolBar1.add(filler6);
 
         jPanel2.setLayout(new java.awt.BorderLayout());
@@ -623,6 +604,37 @@ public class XmlUI extends javax.swing.JFrame {
         jToolBar1.add(jPanel1);
 
         mockPanel.add(jToolBar1, java.awt.BorderLayout.PAGE_START);
+
+        jPanel3.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT));
+
+        xsdFileName.setText("Load xsd File");
+        xsdFileName.setMinimumSize(new java.awt.Dimension(50, 30));
+        xsdFileName.setPreferredSize(new java.awt.Dimension(200, 30));
+        jPanel3.add(xsdFileName);
+
+        loadXsdFromFile.setText("...");
+        loadXsdFromFile.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                loadXsdFromFileActionPerformed(evt);
+            }
+        });
+        jPanel3.add(loadXsdFromFile);
+
+        nodeTextOnly.setSelected(true);
+        nodeTextOnly.setText("Mock Node Text Only");
+        nodeTextOnly.setFocusable(false);
+        nodeTextOnly.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+        nodeTextOnly.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        jPanel3.add(nodeTextOnly);
+
+        mockLeafOnly.setSelected(true);
+        mockLeafOnly.setText("Mock Leaf Nodes Only");
+        mockLeafOnly.setFocusable(false);
+        mockLeafOnly.setHorizontalTextPosition(javax.swing.SwingConstants.RIGHT);
+        mockLeafOnly.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        jPanel3.add(mockLeafOnly);
+
+        mockPanel.add(jPanel3, java.awt.BorderLayout.PAGE_END);
 
         treeTableSplitPane.setRightComponent(mockPanel);
 
@@ -829,6 +841,10 @@ public class XmlUI extends javax.swing.JFrame {
         if (!evt.getValueIsAdjusting()) {
             if (xmlList.getSelectedIndex() != -1) {
                 SimpleXmlModel model = (SimpleXmlModel) xmlListModel.get(xmlList.getSelectedIndex());
+                if (model.getXsdData() != null) {
+                    xsdFileName.setText(model.getXsdData().xsd.getAbsolutePath());
+                    xsdLocation.setText(xsdFileName.getText());
+                }
                 xmlTree.setModel(model.treeModel);
                 XmlTreeNode root = (XmlTreeNode) model.treeModel.getRoot();
                 xmlTree.setSelectionPath(new TreePath(root.getFirstLeaf().getPath()));
@@ -956,10 +972,15 @@ public class XmlUI extends javax.swing.JFrame {
     }//GEN-LAST:event_createMocksActionPerformed
 
     private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
-        List<File> files = new ArrayList<>();
+        List<File[]> files = new ArrayList<>();
         for (int i = 0; i < xmlListModel.size(); i++) {
             SimpleXmlModel xmlModel = (SimpleXmlModel) xmlListModel.get(i);
-            files.add(xmlModel.getFile());
+            File[] file = new File[2];
+            file[0] = xmlModel.getFile();
+            if (xmlModel.getXsdData() != null) {
+                file[1] = xmlModel.getXsdData().xsd;
+            }
+            files.add(file);
         }
         RecentItems.storeRecentItems(files);
     }//GEN-LAST:event_formWindowClosing
@@ -967,14 +988,6 @@ public class XmlUI extends javax.swing.JFrame {
     private void clearMocksActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_clearMocksActionPerformed
         mockTable.setModel(new DefaultTableModel());
     }//GEN-LAST:event_clearMocksActionPerformed
-
-    private void loadXsdActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_loadXsdActionPerformed
-        int val = xsdFileChooser.showOpenDialog(this);
-        if (val == JFileChooser.APPROVE_OPTION) {
-            File selectedFile = xsdFileChooser.getSelectedFile();
-            xsdLocation.setText(selectedFile.getAbsolutePath());
-        }
-    }//GEN-LAST:event_loadXsdActionPerformed
 
     private void createMockXmlsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_createMockXmlsActionPerformed
         XmlTableModel xmlTabModel = (XmlTableModel) mockTable.getModel();
@@ -997,6 +1010,17 @@ public class XmlUI extends javax.swing.JFrame {
             mockXMLSaveLocation.setText(file.getAbsolutePath());
         }
     }//GEN-LAST:event_saveMockXmlToActionPerformed
+
+    private void loadXsdFromFileActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_loadXsdFromFileActionPerformed
+        int val = xsdFileChooser.showOpenDialog(this);
+        if (val == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = xsdFileChooser.getSelectedFile();
+            xsdFileName.setText(selectedFile.getAbsolutePath());
+            xsdLocation.setText(selectedFile.getAbsolutePath());
+            SimpleXmlModel xmlModel = (SimpleXmlModel) xmlListModel.get(xmlList.getSelectedIndex());
+            xmlModel.loadXsd(selectedFile);
+        }
+    }//GEN-LAST:event_loadXsdFromFileActionPerformed
 
     private void showMockDialog() {
         mockDetails.pack();
@@ -1181,6 +1205,18 @@ public class XmlUI extends javax.swing.JFrame {
         xmlListModel.addElement(sFile);
     }
 
+    private void checkAndAdd(File xml, File xsd) {
+        SimpleXmlModel sFile = new SimpleXmlModel(xml);
+        sFile.loadXsd(xsd);
+        for (int i = 0; i < xmlListModel.size(); i++) {
+            if (xmlListModel.get(i).equals(sFile)) {
+                System.out.println(xml + " - File Already Loaded");
+                return;
+            }
+        }
+        xmlListModel.addElement(sFile);
+    }
+
     public void onTextChange() {
         String text = searchText.getText();
         if (!text.isEmpty()) {
@@ -1302,6 +1338,24 @@ public class XmlUI extends javax.swing.JFrame {
             Utils.resizeTable(mockTable);
             if (nodeTextOnly.isSelected()) {
                 mockTable.setRowHeight(20);
+                mockTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+                initAutoSuggest();
+            }
+        }
+    }
+
+    private void initAutoSuggest() {
+        SimpleXmlModel xmlModel = (SimpleXmlModel) xmlListModel.get(xmlList.getSelectedIndex());
+        XsdData xsdData = xmlModel.getXsdData();
+        if (xsdData != null) {
+            XmlTableModel model = (XmlTableModel) mockTable.getModel();
+            for (int i = 1; i < mockTable.getColumnCount(); i++) {
+                XmlTreeNode node = model.getNodeValueAt(0, i);
+                List<String> enums = xsdData.getEnum(node.getName());
+                if (enums != null) {
+                    mockTable.getColumnModel().getColumn(i).setCellEditor(
+                            new DefaultCellEditor(new JComboBox(enums.toArray())));
+                }
             }
         }
     }
@@ -1336,7 +1390,10 @@ public class XmlUI extends javax.swing.JFrame {
             public void run() {
                 XmlUI xml = new XmlUI();
                 xml.setVisible(true);
-                xml.checkAndAddFiles(RecentItems.getRecentItems());
+                for (File[] vals : RecentItems.getRecentItems()) {
+                    xml.checkAndAdd(vals[0], vals[1]);
+                }
+                xml.setExtendedState(XmlUI.MAXIMIZED_BOTH);
             }
         });
     }
@@ -1365,6 +1422,7 @@ public class XmlUI extends javax.swing.JFrame {
     private javax.swing.JMenuBar jMenuBar1;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
+    private javax.swing.JPanel jPanel3;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JPopupMenu.Separator jSeparator1;
     private javax.swing.JPopupMenu.Separator jSeparator2;
@@ -1375,7 +1433,7 @@ public class XmlUI extends javax.swing.JFrame {
     private javax.swing.JSplitPane listTreeSplitpane;
     private javax.swing.JMenuItem loadMenuItem;
     private javax.swing.JButton loadXml;
-    private javax.swing.JButton loadXsd;
+    private javax.swing.JButton loadXsdFromFile;
     private javax.swing.JTextField mockDataName;
     private javax.swing.JToggleButton mockDataToggle;
     private javax.swing.JDialog mockDetails;
@@ -1411,6 +1469,7 @@ public class XmlUI extends javax.swing.JFrame {
     private javax.swing.JTable xmlPropTable;
     private javax.swing.JTree xmlTree;
     private javax.swing.JFileChooser xsdFileChooser;
+    private javax.swing.JTextField xsdFileName;
     private javax.swing.JTextField xsdLocation;
     // End of variables declaration//GEN-END:variables
 

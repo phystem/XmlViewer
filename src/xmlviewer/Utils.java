@@ -217,6 +217,7 @@ public class Utils {
         return false;
     }
 
+   
     public static void expandTree(JTree tree, boolean expand) {
         TreeNode root = (TreeNode) tree.getModel().getRoot();
         expandAll(tree, new TreePath(root), expand);
@@ -290,4 +291,10 @@ public class Utils {
         tree.setCellEditor(editor);
     }
 
+    public static void main(String[] args) {
+        XsdData xsd=new XsdData(new File("C:\\Users\\Phystem\\Documents\\data.xsd"));
+        System.out.println(xsd.getEnum("Color"));
+        System.out.println(xsd.getEnum("Colo"));
+        System.out.println(xsd.getEnum("Size"));
+    }
 }
