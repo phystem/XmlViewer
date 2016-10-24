@@ -44,7 +44,7 @@ import org.xml.sax.SAXException;
 public class XsdData {
 
     Map<String, List<String>> enums = new HashMap<>();
-    Map<String, String> elementEnum = new HashMap<>();
+//    Map<String, String> elementEnum = new HashMap<>();
 
     File xsd;
 
@@ -55,7 +55,6 @@ public class XsdData {
 
     private void loadEnums(File xsd) {
         try {
-            // Setup classes to parse XSD file for complex types
             DocumentBuilderFactory domFactory = DocumentBuilderFactory.newInstance();
             domFactory.setValidating(false);
             domFactory.setNamespaceAware(true);
@@ -64,7 +63,6 @@ public class XsdData {
             DocumentBuilder db = domFactory.newDocumentBuilder();
             Document doc = db.parse(new FileInputStream(xsd));
 
-            // Given the id, go to correct place in XSD to get all the parameters
             XPath xpath = XPathFactory.newInstance().newXPath();
             NamespaceContext nsContext = new NamespaceContext() {
 
@@ -89,27 +87,47 @@ public class XsdData {
 
             xpath.setNamespaceContext((NamespaceContext) nsContext);
 
-            NodeList result = (NodeList) xpath.evaluate("//*[@name][xs:restriction/xs:enumeration]", doc, XPathConstants.NODESET);
+            NodeList elements = (NodeList) xpath.evaluate("//xs:element[@type]", doc, XPathConstants.NODESET);
 
-            for (int i = 0; i < result.getLength(); i++) {
-                Element e = (Element) result.item(i);
-                String nodeName = e.getAttribute("name");
-                NodeList elements = (NodeList) xpath.evaluate("//xs:element[@type='" + nodeName + "']", doc, XPathConstants.NODESET);
-                for (int j = 0; j < elements.getLength(); j++) {
-                    Element element = (Element) elements.item(j);
-                    elementEnum.put(element.getAttribute("name"), nodeName);
-                }
-                enums.put(nodeName, new ArrayList<>());
-                NodeList enumList = e.getElementsByTagName("xs:enumeration");
-                for (int j = 0; j < enumList.getLength(); j++) {
-                    Element enumVal = (Element) enumList.item(j);
-                    enums.get(nodeName).add(enumVal.getAttribute("value"));
+            for (int i = 0; i < elements.getLength(); i++) {
+                Element element = (Element) elements.item(i);
+                List<String> enumVals = getEnums(doc, xpath, element.getAttribute("type"));
+                if (enumVals != null && !enumVals.isEmpty()) {
+                    enums.put(element.getAttribute("name"), enumVals);
                 }
             }
-
         } catch (ParserConfigurationException | SAXException | IOException | XPathExpressionException ex) {
             Logger.getLogger(XsdData.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+
+    private List<String> getEnums(Document doc, XPath xpath, String type) {
+        List<String> vals = new ArrayList<>();
+        try {
+            Element element = (Element) xpath.evaluate("//xs:simpleType[@name='" + type + "']", doc, XPathConstants.NODE);
+            if (element != null) {
+                NodeList unions = element.getElementsByTagName("xs:union");
+                if (unions != null && unions.getLength() > 0) {
+                    String[] memebers
+                            = ((Element) unions.item(0)).getAttribute("memberTypes").split(" ");
+                    for (String memeber : memebers) {
+                        vals.addAll(getEnums(doc, xpath, memeber));
+                    }
+                } else {
+                    NodeList enumerations = element.getElementsByTagName("xs:enumeration");
+                    if (enumerations != null && enumerations.getLength() > 0) {
+                        for (int i = 0; i < enumerations.getLength(); i++) {
+                            Element enumVal = (Element) enumerations.item(i);
+                            vals.add(enumVal.getAttribute("value"));
+                        }
+                        return vals;
+                    }
+                }
+            }
+        } catch (XPathExpressionException ex) {
+            Logger.getLogger(XsdData.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return vals;
     }
 
     public Boolean validate(Document document) {
@@ -127,9 +145,16 @@ public class XsdData {
     }
 
     public List<String> getEnum(String elementName) {
-        if (elementEnum.containsKey(elementName)) {
-            return enums.get(elementEnum.get(elementName));
+        if (enums.containsKey(elementName)) {
+            return enums.get(elementName);
         }
         return null;
     }
+
+    public static void main(String[] args) {
+        XsdData xsd = new XsdData(new File("C:\\Users\\Phystem\\Documents\\NetBeansProjects\\XmlViewer\\xmls\\sampleschema.xsd"));
+        xsd.getEnum("cars");
+        System.out.println(xsd.enums);
+    }
+
 }

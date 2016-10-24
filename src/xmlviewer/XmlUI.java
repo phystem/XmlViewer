@@ -60,6 +60,7 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.text.DefaultFormatter;
+import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
@@ -846,7 +847,7 @@ public class XmlUI extends javax.swing.JFrame {
                     xsdLocation.setText(xsdFileName.getText());
                 }
                 xmlTree.setModel(model.treeModel);
-                XmlTreeNode root = (XmlTreeNode) model.treeModel.getRoot();
+                DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.treeModel.getRoot();
                 xmlTree.setSelectionPath(new TreePath(root.getFirstLeaf().getPath()));
                 Utils.expandTree(xmlTree, true);
             }
@@ -1078,12 +1079,15 @@ public class XmlUI extends javax.swing.JFrame {
     }
 
     private XmlTreeNode getMatchingNodeByXpath(DefaultTreeModel model, String xpath) {
-        XmlTreeNode root = (XmlTreeNode) model.getRoot();
+        DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.getRoot();
         Enumeration e = root.preorderEnumeration();
         while (e.hasMoreElements()) {
-            XmlTreeNode node = (XmlTreeNode) e.nextElement();
-            if (node.getXpath().equals(xpath)) {
-                return node;
+            Object obj = e.nextElement();
+            if (obj instanceof XmlTreeNode) {
+                XmlTreeNode node = (XmlTreeNode) obj;
+                if (node.getXpath().equals(xpath)) {
+                    return node;
+                }
             }
         }
         return null;
@@ -1229,17 +1233,20 @@ public class XmlUI extends javax.swing.JFrame {
     private void searchAndSelect(String text) {
         Matcher matcher = pattern.matcher(text);
         if (matcher.matches()) {
-            XmlTreeNode root = (XmlTreeNode) xmlTree.getModel().getRoot();
+            DefaultMutableTreeNode root = (DefaultMutableTreeNode) xmlTree.getModel().getRoot();
             int count = 0;
             XmlTreeNode snode = null;
             Enumeration e = root.preorderEnumeration();
             while (e.hasMoreElements()) {
-                XmlTreeNode node = (XmlTreeNode) e.nextElement();
-                if (check(matcher, node)) {
-                    if (snode == null) {
-                        snode = node;
+                Object obj = e.nextElement();
+                if (obj instanceof XmlTreeNode) {
+                    XmlTreeNode node = (XmlTreeNode) obj;
+                    if (check(matcher, node)) {
+                        if (snode == null) {
+                            snode = node;
+                        }
+                        count++;
                     }
-                    count++;
                 }
             }
             if (snode != null) {
