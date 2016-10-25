@@ -151,10 +151,5 @@ public class XsdData {
         return null;
     }
 
-    public static void main(String[] args) {
-        XsdData xsd = new XsdData(new File("C:\\Users\\Phystem\\Documents\\NetBeansProjects\\XmlViewer\\xmls\\sampleschema.xsd"));
-        xsd.getEnum("cars");
-        System.out.println(xsd.enums);
-    }
 
 }
