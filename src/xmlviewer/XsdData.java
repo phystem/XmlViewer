@@ -44,7 +44,6 @@ import org.xml.sax.SAXException;
 public class XsdData {
 
     Map<String, List<String>> enums = new HashMap<>();
-//    Map<String, String> elementEnum = new HashMap<>();
 
     File xsd;
 
@@ -102,6 +101,9 @@ public class XsdData {
     }
 
     private List<String> getEnums(Document doc, XPath xpath, String type) {
+        if (type.contains(":")) {
+            type = type.substring(type.indexOf(":") + 1);
+        }
         List<String> vals = new ArrayList<>();
         try {
             Element element = (Element) xpath.evaluate("//xs:simpleType[@name='" + type + "']", doc, XPathConstants.NODE);
@@ -145,11 +147,13 @@ public class XsdData {
     }
 
     public List<String> getEnum(String elementName) {
+        if (elementName.contains(":")) {
+            elementName = elementName.substring(elementName.indexOf(":") + 1);
+        }
         if (enums.containsKey(elementName)) {
             return enums.get(elementName);
         }
         return null;
     }
-
 
 }

@@ -8,10 +8,13 @@ package xmlviewer;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.tree.DefaultTreeModel;
 import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
 
 /**
  *
@@ -125,13 +128,20 @@ public class XmlTableModel extends AbstractTableModel {
                     realNodes.add((XmlTreeNode) node.clone());
                 }
                 for (int dup = 0; dup < duplicates.size(); dup++) {
+                    String fileName = mockName.replace("{index}", dup + 1 + "");
+                    File xmlFile = new File(location, fileName + ".xml");
+
                     List<XmlTreeNode> duplicate = duplicates.get(dup);
                     replaceReal(duplicate);
-                    Document doc
-                            = Utils.saveFromTreeModel(new DefaultTreeModel(nodes.get(0).getRoot()),
-                                    new File(location, mockName.replace("{index}", dup + 1 + "") + ".xml"));
+                    Utils.saveFromTreeModel(new DefaultTreeModel(nodes.get(0).getRoot()),
+                            xmlFile);
                     if (validateAgainstSchema != null) {
-                        if (!Utils.validate(doc, validateAgainstSchema)) {
+                        try {
+                            if (!Utils.validate(xmlFile, validateAgainstSchema)) {
+                                invalid.add(dup + 1);
+                            }
+                        } catch (SAXException ex) {
+                            Utils.writeException(new File(location, fileName + "_error.txt"), ex);
                             invalid.add(dup + 1);
                         }
                     }
@@ -156,10 +166,6 @@ public class XmlTableModel extends AbstractTableModel {
                 }
             }
         }
-    }
-
-    private void validateAgainst(File xsd) {
-
     }
 
 }

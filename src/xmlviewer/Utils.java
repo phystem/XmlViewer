@@ -11,6 +11,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.Enumeration;
@@ -105,6 +106,7 @@ public class Utils {
     private static Element parseXmlFromComment(String comment) {
         try {
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            dbf.setNamespaceAware(true);
             DocumentBuilder db = dbf.newDocumentBuilder();
             Document doc = db.parse(new ByteArrayInputStream(comment.getBytes("UTF-8")));
             return doc.getDocumentElement();
@@ -117,6 +119,7 @@ public class Utils {
     public static Document loadXml(File xmlPath) {
         try {
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            dbf.setNamespaceAware(true);
             DocumentBuilder db = dbf.newDocumentBuilder();
             return db.parse(xmlPath);
         } catch (ParserConfigurationException | SAXException | IOException ex) {
@@ -128,6 +131,7 @@ public class Utils {
     public static Document getNew() {
         try {
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            dbf.setNamespaceAware(true);
             DocumentBuilder db = dbf.newDocumentBuilder();
             return db.newDocument();
         } catch (ParserConfigurationException ex) {
@@ -136,12 +140,11 @@ public class Utils {
         return null;
     }
 
-    public static Document saveFromTreeModel(DefaultTreeModel model, File xmlPath) {
+    public static void saveFromTreeModel(DefaultTreeModel model, File xmlPath) {
         Document doc = getNew();
         XmlTreeNode rootNode = (XmlTreeNode) model.getRoot();
         doc.appendChild(createElement(rootNode, doc));
         saveXml(doc, xmlPath);
-        return doc;
     }
 
     private static Node createElement(XmlTreeNode node, Document doc) {
@@ -203,21 +206,30 @@ public class Utils {
         }
     }
 
-    public static Boolean validate(Document document, File xsd) {
+    public static Boolean validate(File xml, File xsd) throws SAXException {
         try {
-            SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-            Source schemaFile = new StreamSource(xsd);
-            Schema schema = factory.newSchema(schemaFile);
+            SchemaFactory factory
+                    = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+            Schema schema = factory.newSchema(xsd);
             Validator validator = schema.newValidator();
-            validator.validate(new DOMSource(document));
+            validator.validate(new StreamSource(xml));
             return true;
-        } catch (SAXException | IOException ex) {
+        } catch (IOException ex) {
             Logger.getLogger(Utils.class.getName()).log(Level.SEVERE, null, ex);
         }
         return false;
     }
 
-   
+    public static void writeException(File file, Exception ex) {
+        try {
+            try (FileWriter writer = new FileWriter(file)) {
+                writer.write(ex.getMessage());
+            }
+        } catch (IOException ex1) {
+            Logger.getLogger(Utils.class.getName()).log(Level.SEVERE, null, ex1);
+        }
+    }
+
     public static void expandTree(JTree tree, boolean expand) {
         TreeNode root = (TreeNode) tree.getModel().getRoot();
         expandAll(tree, new TreePath(root), expand);
@@ -292,7 +304,7 @@ public class Utils {
     }
 
     public static void main(String[] args) {
-        XsdData xsd=new XsdData(new File("C:\\Users\\Phystem\\Documents\\data.xsd"));
+        XsdData xsd = new XsdData(new File("C:\\Users\\Phystem\\Documents\\data.xsd"));
         System.out.println(xsd.getEnum("Color"));
         System.out.println(xsd.getEnum("Colo"));
         System.out.println(xsd.getEnum("Size"));
